@@ -100,7 +100,5 @@ Co jest pokryte:
 - `errors/PokemonApiError.ts` - klasyfikacja błędów HTTP (100%)
 - `services/pokemonCache.ts` - cache (100%)
 - `services/pokemonService.ts` - główna logika szukania (~96%)
-- `utils/abortUtils.ts` - abort signal handling (100%)
-- `utils/abortUtils.ts` - delay z abort (~96%)
 
 Brak testów na komponenty i hooki - nie znam jeszcze React Testing Library na tyle żeby pisać w nim sensowne testy w rozsądnym czasie. Komponenty lepiej testować integracyjnie albo E2E (osobiście korzystam z Playwright), a na naukę RTL w ramach tego zadania nie starczyło czasu.
