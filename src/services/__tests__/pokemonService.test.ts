@@ -1,4 +1,4 @@
-import { searchPokemonsByName } from '@services/pokemonService';
+import { searchPokemonsByName, clearPokemonCache } from '@services/pokemonService';
 import { api } from '@services/api';
 import { filterByPrefix } from '@utils/filters';
 import { PokemonAbortError, PokemonNetworkError } from '@errors';
@@ -44,6 +44,7 @@ describe('searchPokemonsByName', () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		clearPokemonCache(); // Clear cache between tests
 	});
 
 	it('should search and return matching pokemon forms', async () => {
