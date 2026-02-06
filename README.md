@@ -22,6 +22,7 @@ npm run preview    # podgląd builda
 - TailwindCSS
 - RxJS
 - Zod
+- ky (HTTP client)
 - Vitest
 - ESLint (typescript-eslint + react-hooks)
 
@@ -37,20 +38,32 @@ npm run preview    # podgląd builda
 
 **Zod** - W ekosystemie React to dość standardowy wybór. TypeScript sprawdza typy tylko w compile-time, a w runtimie nikt nie zagwarantuje, że PokeAPI zwróci to co oczekuję. Zod waliduje dane na wejściu i generuje typy przez `z.infer`, więc nie muszę nic duplikować. Jak API zmieni format odpowiedzi, od razu to wychwyci.
 
+**ky** - Lekki HTTP client (5KB) z wbudowanym retry, timeoutem i lepszą obsługą błędów niż fetch. Battle-tested biblioteka oferująca exponential backoff, filtrowanie status codes, abort signal support i automatyczny timeout. Jedna konfiguracja w `api.ts` definiuje zachowanie dla całej aplikacji - mniej kodu do utrzymania, łatwiejsze testy (mockowanie na poziomie ky zamiast fetch), i mniejsze ryzyko edge cases niż przy własnej implementacji.
+
 ## Struktura
 
 ```
 src/
-├── components/     # komponenty React (w tym ErrorBoundary)
+├── components/     # każdy komponent w osobnym pliku (MessageBox, PokemonCard, itd.)
 ├── hooks/          # custom hooki
-├── services/       # komunikacja z API, cache
-├── utils/          # helpery (abort, http, formattery)
+├── services/       # klasy serwisowe (PokemonCache jako static class, api.ts)
+├── utils/          # luźne funkcje helper (abort, formattery)
 ├── types/          # typy TS (branded types, Zod schemas)
 ├── interfaces/     # interfejsy propsów
 └── errors/         # hierarchia klas błędów
 ```
 
 Struktura przeniesiona z tego jak organizuję kod w Angularze - wydzielone serwisy, osobne typy, hierarchia błędów. Doczytałem, że w React częściej grupuje się po feature'ach, ale na razie taki podział jest jedynym jaki znam i przy tej skali aplikacji nie powinno to przeszkadzać. Przy tak małej aplikacji też ciężko podzielić na "feature'y", bo wszystko jest ze sobą ściśle powiązane.
+
+**Zasada Single Responsibility (SRP)**
+
+Świadoma decyzja żeby trzymać się 1 plik = 1 odpowiedzialność, podobnie jak w .NET gdzie 1 klasa = 1 plik. W TypeScript/React spotyka się często praktykę trzymania helper componentów w tym samym pliku co parent albo grupowanie funkcji utils w jednym pliku - celowo tego unikam. Przykłady:
+
+- `MessageBox` ma własny plik mimo że używany tylko w `PokemonList` - łatwiej później wyciągnąć do reużycia
+- `PokemonCache` to klasa ze statycznymi metodami zamiast luźnych funkcji - enkapsulacja stanu cache i logiki w jednym miejscu, jak w .NET
+- Każda klasa błędu w osobnym pliku w hierarchii - łatwiej śledzić dziedziczenie i odpowiedzialności
+
+To może wyglądać "over-engineered" dla tak małego projektu, ale trzymam się tego co znam z backendu. Przy skalowaniu kodu ta struktura ułatwia refaktoring i testowanie.
 
 ## Co robi aplikacja
 
@@ -87,7 +100,7 @@ Co jest pokryte:
 - `errors/PokemonApiError.ts` - klasyfikacja błędów HTTP (100%)
 - `services/pokemonCache.ts` - cache (100%)
 - `services/pokemonService.ts` - główna logika szukania (~96%)
-- `utils/httpUtils.ts` - fetch z retry, timeout i walidacją (~96%)
+- `utils/abortUtils.ts` - abort signal handling (100%)
 - `utils/abortUtils.ts` - delay z abort (~96%)
 
 Brak testów na komponenty i hooki - nie znam jeszcze React Testing Library na tyle żeby pisać w nim sensowne testy w rozsądnym czasie. Komponenty lepiej testować integracyjnie albo E2E (osobiście korzystam z Playwright), a na naukę RTL w ramach tego zadania nie starczyło czasu.

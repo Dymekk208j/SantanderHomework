@@ -1,3 +1,4 @@
+import ky, { type HTTPError, type TimeoutError } from 'ky';
 import { z } from 'zod';
 import {
 	PokemonError,
@@ -8,88 +9,61 @@ import {
 	PokemonUnknownError,
 } from '@errors';
 import { MAX_RETRIES, RETRY_BASE_DELAY_MS, REQUEST_TIMEOUT_MS } from '@constants';
-import { delayWithAbort } from './abortUtils';
 
 /**
- * Combines user abort signal with timeout signal.
- * Returns a combined signal that aborts if either the user signal or timeout fires.
+ * Fetches and validates data from a URL using Zod schema.
+ * Includes automatic retry with backoff and timeout handling.
  */
-function createTimeoutSignal(userSignal?: AbortSignal, timeoutMs: number = REQUEST_TIMEOUT_MS): AbortSignal {
-	if (!userSignal) {
-		return AbortSignal.timeout(timeoutMs);
-	}
-
-	const controller = new AbortController();
-
-	// Handler for user abort
-	const userAbortHandler = () => controller.abort(userSignal.reason);
-
-	// Abort if user signal fires
-	if (userSignal.aborted) {
-		controller.abort(userSignal.reason);
-	} else {
-		userSignal.addEventListener('abort', userAbortHandler, { once: true });
-	}
-
-	// Abort on timeout
-	const timeoutId = setTimeout(() => controller.abort(new Error('Request timeout')), timeoutMs);
-
-	// Clean up both timeout and listener if aborted early
-	controller.signal.addEventListener(
-		'abort',
-		() => {
-			clearTimeout(timeoutId);
-			userSignal.removeEventListener('abort', userAbortHandler);
-		},
-		{ once: true }
-	);
-
-	return controller.signal;
-}
-
 export async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
-	let lastError: PokemonError | undefined;
+	const api = ky.create({
+		timeout: REQUEST_TIMEOUT_MS,
+		retry: {
+			limit: MAX_RETRIES,
+			methods: ['get'],
+			statusCodes: [408, 413, 429, 500, 502, 503, 504],
+			delay: (attemptCount) => RETRY_BASE_DELAY_MS * attemptCount,
+		},
+	});
 
-	for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+	try {
+		signal?.throwIfAborted();
+
+		const json: unknown = await api.get(url, { signal }).json();
+
 		try {
-			signal?.throwIfAborted();
-
-			const timeoutSignal = createTimeoutSignal(signal);
-			const response = await fetch(url, { signal: timeoutSignal });
-
-			if (!response.ok) {
-				throw new PokemonApiError(`API error: ${response.status} ${response.statusText}`, response.status);
-			}
-
-			const json: unknown = await response.json();
-
-			try {
-				const result = schema.parse(json);
-				return result;
-			} catch (zodError) {
-				throw new PokemonValidationError('Failed to validate API response', zodError);
-			}
-		} catch (error: unknown) {
-			// Convert unknown errors to our error hierarchy
-			if (error instanceof PokemonError) {
-				lastError = error;
-			} else if (error instanceof DOMException && error.name === 'AbortError') {
-				throw new PokemonAbortError();
-			} else if (error instanceof TypeError) {
-				// Any TypeError from fetch is a network error (CORS, DNS, connection failure, etc.)
-				lastError = new PokemonNetworkError();
-			} else {
-				lastError = new PokemonUnknownError(error instanceof Error ? error.message : 'Unknown error occurred', error);
-			}
-
-			if (attempt < MAX_RETRIES && lastError && lastError.isRetryable()) {
-				await delayWithAbort(RETRY_BASE_DELAY_MS * (attempt + 1), signal);
-				continue;
-			}
-
-			throw lastError;
+			return schema.parse(json);
+		} catch (zodError) {
+			throw new PokemonValidationError('Failed to validate API response', zodError);
 		}
-	}
+	} catch (error: unknown) {
+		// Map ky/fetch errors to our error hierarchy
+		if (error instanceof PokemonError) {
+			throw error;
+		}
 
-	throw lastError ?? new PokemonUnknownError('Request failed without error details');
+		if (error instanceof DOMException && error.name === 'AbortError') {
+			throw new PokemonAbortError();
+		}
+
+		// Check for ky HTTP errors first (before TypeError check)
+		if (error && typeof error === 'object' && 'response' in error) {
+			const httpError = error as HTTPError;
+			throw new PokemonApiError(
+				`API error: ${httpError.response.status} ${httpError.response.statusText}`,
+				httpError.response.status
+			);
+		}
+
+		// ky timeout errors
+		if (error && typeof error === 'object' && 'name' in error && error.name === 'TimeoutError') {
+			throw new PokemonNetworkError();
+		}
+
+		// Network/CORS/DNS errors are TypeError in fetch
+		if (error instanceof TypeError) {
+			throw new PokemonNetworkError();
+		}
+
+		throw new PokemonUnknownError(error instanceof Error ? error.message : 'Unknown error occurred', error);
+	}
 }

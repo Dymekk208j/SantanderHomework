@@ -1,18 +1,21 @@
 import { searchPokemonsByName } from '@services/pokemonService';
-import { fetchAllPokemonForms } from '@services/pokemonCache';
-import { fetchAndValidate } from '@utils/httpUtils';
+import { PokemonCache } from '@services/pokemonCache';
+import { api } from '@services/api';
 import { filterByPrefix } from '@utils/filters';
 import { PokemonAbortError, PokemonNetworkError } from '@errors';
 import type { PokemonForm } from '@app-types/pokemon';
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/pokemonCache');
-vi.mock('@utils/httpUtils');
+vi.mock('@services/api', () => ({
+	api: {
+		get: vi.fn(),
+	},
+}));
 vi.mock('@utils/filters');
 
-const mockedFetchAllPokemonForms = fetchAllPokemonForms as Mock<typeof fetchAllPokemonForms>;
-const mockedFetchAndValidate = fetchAndValidate as Mock<typeof fetchAndValidate>;
-const mockedFilterByPrefix = filterByPrefix as Mock<typeof filterByPrefix>;
+const mockedFetchAll = vi.spyOn(PokemonCache, 'fetchAll');
+const mockApiGet = vi.mocked(api.get);
+const mockedFilterByPrefix = vi.mocked(filterByPrefix);
 
 describe('searchPokemonsByName', () => {
 	const mockAllPokemons = [
@@ -25,10 +28,10 @@ describe('searchPokemonsByName', () => {
 		id: 25,
 		name: 'pikachu',
 		sprites: {
-			front_default: 'pikachu.png',
+			front_default: 'https://example.com/pikachu.png',
 			other: {
 				'official-artwork': {
-					front_default: 'pikachu-artwork.png',
+					front_default: 'https://example.com/pikachu-artwork.png',
 				},
 			},
 		},
@@ -39,10 +42,10 @@ describe('searchPokemonsByName', () => {
 		id: 6,
 		name: 'charizard',
 		sprites: {
-			front_default: 'charizard.png',
+			front_default: 'https://example.com/charizard.png',
 			other: {
 				'official-artwork': {
-					front_default: 'charizard-artwork.png',
+					front_default: 'https://example.com/charizard-artwork.png',
 				},
 			},
 		},
@@ -54,52 +57,65 @@ describe('searchPokemonsByName', () => {
 	});
 
 	it('should search and return matching pokemon forms', async () => {
-		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
+		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
-		mockedFetchAndValidate.mockResolvedValueOnce(mockPikachuForm).mockResolvedValueOnce(mockCharizardForm);
+
+		const jsonMock1 = vi.fn().mockResolvedValue(mockPikachuForm);
+		const jsonMock2 = vi.fn().mockResolvedValue(mockCharizardForm);
+		mockApiGet
+			.mockReturnValueOnce({ json: jsonMock1 } as unknown as ReturnType<typeof api.get>)
+			.mockReturnValueOnce({ json: jsonMock2 } as unknown as ReturnType<typeof api.get>);
 
 		const result = await searchPokemonsByName('pi');
 
 		expect(result).toEqual([mockPikachuForm, mockCharizardForm]);
-		expect(mockedFetchAllPokemonForms).toHaveBeenCalledWith();
+		expect(mockedFetchAll).toHaveBeenCalledWith();
 		expect(mockedFilterByPrefix).toHaveBeenCalledWith(mockAllPokemons, 'pi', expect.any(Number));
-		expect(mockedFetchAndValidate).toHaveBeenCalledTimes(2);
+		expect(mockApiGet).toHaveBeenCalledTimes(2);
 	});
 
 	it('should return empty array when no matches found', async () => {
-		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
+		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue([]);
 
 		const result = await searchPokemonsByName('xyz');
 
 		expect(result).toEqual([]);
-		expect(mockedFetchAndValidate).not.toHaveBeenCalled();
+		expect(mockApiGet).not.toHaveBeenCalled();
 	});
 
 	it('should pass abort signal through all calls', async () => {
 		const controller = new AbortController();
-		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
+		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
-		mockedFetchAndValidate.mockResolvedValue(mockPikachuForm);
+
+		const jsonMock = vi.fn().mockResolvedValue(mockPikachuForm);
+		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
 
 		await searchPokemonsByName('pikachu', controller.signal);
 
-		expect(mockedFetchAllPokemonForms).toHaveBeenCalledWith();
-		expect(mockedFetchAndValidate).toHaveBeenCalledWith(expect.any(String), expect.anything(), controller.signal);
+		expect(mockedFetchAll).toHaveBeenCalledWith();
+		expect(mockApiGet).toHaveBeenCalledWith(expect.any(String), { signal: controller.signal });
 	});
 
 	it('should throw PokemonAbortError when any request is aborted', async () => {
-		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
+		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
-		mockedFetchAndValidate.mockRejectedValue(new PokemonAbortError());
+		const jsonMock = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
+		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
 
 		await expect(searchPokemonsByName('pikachu')).rejects.toThrow(PokemonAbortError);
 	});
 
 	it('should silently ignore non-abort errors for individual pokemon fetches', async () => {
-		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
+		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
-		mockedFetchAndValidate.mockResolvedValueOnce(mockPikachuForm).mockRejectedValueOnce(new PokemonNetworkError());
+
+		const jsonMock1 = vi.fn().mockResolvedValue(mockPikachuForm);
+		const jsonMock2 = vi.fn().mockRejectedValue(new PokemonNetworkError());
+		mockApiGet
+			.mockReturnValueOnce({ json: jsonMock1 } as unknown as ReturnType<typeof api.get>)
+			.mockReturnValueOnce({ json: jsonMock2 } as unknown as ReturnType<typeof api.get>);
 
 		const result = await searchPokemonsByName('pi');
 
@@ -108,9 +124,10 @@ describe('searchPokemonsByName', () => {
 	});
 
 	it('should return empty array if all individual fetches fail', async () => {
-		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
+		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
-		mockedFetchAndValidate.mockRejectedValue(new PokemonNetworkError());
+		const jsonMock = vi.fn().mockRejectedValue(new PokemonNetworkError());
+		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
 
 		const result = await searchPokemonsByName('pi');
 
@@ -118,18 +135,18 @@ describe('searchPokemonsByName', () => {
 	});
 
 	it('should fetch details for all matched pokemon in parallel', async () => {
-		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
+		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue(mockAllPokemons);
 
 		let _fetchCallCount = 0;
-		mockedFetchAndValidate.mockImplementation(() => {
+		const jsonMock = vi.fn().mockImplementation(() => {
 			_fetchCallCount++;
-			// Simulate parallel execution - all should start before any completes
 			return Promise.resolve(mockPikachuForm);
 		});
+		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
 
 		await searchPokemonsByName('p');
 
-		expect(mockedFetchAndValidate).toHaveBeenCalledTimes(3);
+		expect(mockApiGet).toHaveBeenCalledTimes(3);
 	});
 });

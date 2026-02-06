@@ -1,17 +1,15 @@
 import type { PokemonForm } from '@app-types/pokemon';
 import { PokemonFormSchema } from '@app-types/pokemon';
-import { PokemonAbortError } from '@errors';
+import { PokemonAbortError, PokemonValidationError, PokemonApiError, PokemonNetworkError, PokemonError } from '@errors';
 import { MAX_RESULTS } from '@constants';
-import { fetchAndValidate } from '@utils/httpUtils';
-import { fetchAllPokemonForms, clearPokemonCache } from '@services/pokemonCache';
+import { api } from './api';
+import { PokemonCache } from '@services/pokemonCache';
 import { filterByPrefix } from '@utils/filters';
-
-// Re-export for convenience
-export { clearPokemonCache, PokemonAbortError };
+import type { HTTPError } from 'ky';
 
 export async function searchPokemonsByName(query: string, signal?: AbortSignal): Promise<PokemonForm[]> {
 	// Fetch the cached list - if signal is provided, race against abort
-	const allPokemonsPromise = fetchAllPokemonForms();
+	const allPokemonsPromise = PokemonCache.fetchAll();
 
 	const allPokemons = signal
 		? await Promise.race([
@@ -36,7 +34,36 @@ export async function searchPokemonsByName(query: string, signal?: AbortSignal):
 	if (matched.length === 0) return [];
 
 	const settled = await Promise.allSettled(
-		matched.map((pokemon) => fetchAndValidate(pokemon.url, PokemonFormSchema, signal))
+		matched.map(async (pokemon) => {
+			try {
+				signal?.throwIfAborted();
+				const json: unknown = await api.get(pokemon.url, { signal }).json();
+
+				try {
+					return PokemonFormSchema.parse(json);
+				} catch (zodError) {
+					throw new PokemonValidationError('Failed to validate Pokemon form', zodError);
+				}
+			} catch (error: unknown) {
+				if (error instanceof PokemonError) {
+					throw error;
+				}
+
+				if (error instanceof DOMException && error.name === 'AbortError') {
+					throw new PokemonAbortError();
+				}
+
+				if (error && typeof error === 'object' && 'response' in error) {
+					const httpError = error as HTTPError;
+					throw new PokemonApiError(
+						`API error: ${httpError.response.status} ${httpError.response.statusText}`,
+						httpError.response.status
+					);
+				}
+
+				throw new PokemonNetworkError();
+			}
+		})
 	);
 
 	const results: PokemonForm[] = [];
