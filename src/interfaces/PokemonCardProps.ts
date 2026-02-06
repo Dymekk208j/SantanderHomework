@@ -1,4 +1,4 @@
-import type { PokemonDisplay } from '../types/pokemon';
+import type { PokemonDisplay } from '@app-types/pokemon';
 
 export interface PokemonCardProps {
 	readonly pokemon: PokemonDisplay;

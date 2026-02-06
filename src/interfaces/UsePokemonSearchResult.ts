@@ -1,4 +1,4 @@
-import type { PokemonForm } from '../types/pokemon';
+import type { PokemonForm } from '@app-types/pokemon';
 
 export interface UsePokemonSearchResult {
 	readonly query: string;

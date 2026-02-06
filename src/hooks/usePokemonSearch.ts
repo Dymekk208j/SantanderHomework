@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { BehaviorSubject, combineLatest, from, of } from 'rxjs';
 import { debounceTime, switchMap, catchError, map, distinctUntilChanged, tap, startWith } from 'rxjs/operators';
-import type { PokemonForm } from '../types/pokemon';
-import { searchPokemonsByName } from '../services/pokemonService';
-import { PokemonAbortError } from '../errors';
-import type { UsePokemonSearchResult } from '../interfaces/UsePokemonSearchResult';
+import type { PokemonForm } from '@app-types/pokemon';
+import { searchPokemonsByName } from '@services/pokemonService';
+import { PokemonAbortError } from '@errors';
+import type { UsePokemonSearchResult } from '@interfaces/UsePokemonSearchResult';
 
 interface SearchState {
 	results: readonly PokemonForm[];

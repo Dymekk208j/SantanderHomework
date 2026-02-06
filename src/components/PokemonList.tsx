@@ -1,9 +1,9 @@
 import * as React from 'react';
-import { toPokemonDisplay } from '../types/pokemon';
-import { PokemonCard } from './PokemonCard';
-import { LoadingDots } from './LoadingDots';
-import type { PokemonListProps } from '../interfaces/PokemonListProps';
-import type { MessageBoxProps } from '../interfaces/MessageBoxProps';
+import { toPokemonDisplay } from '@app-types/pokemon';
+import { PokemonCard } from '@components/PokemonCard';
+import { LoadingDots } from '@components/LoadingDots';
+import type { PokemonListProps } from '@interfaces/PokemonListProps';
+import type { MessageBoxProps } from '@interfaces/MessageBoxProps';
 
 const MessageBox: React.FC<MessageBoxProps> = ({ icon, text, variant, extra }) => {
 	const variantStyles = {

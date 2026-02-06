@@ -15,12 +15,26 @@ export const PokemonListResponseSchema = z.object({
 
 export const PokemonSpritesSchema = z.object({
 	front_default: z.string().url().nullable(),
+	other: z
+		.object({
+			'official-artwork': z.object({
+				front_default: z.string().url().nullable(),
+			}),
+		})
+		.optional(),
+});
+
+export const PokemonTypeSchema = z.object({
+	type: z.object({
+		name: z.string(),
+	}),
 });
 
 export const PokemonFormSchema = z.object({
 	id: z.number().int().positive(),
 	name: z.string().min(1),
 	sprites: PokemonSpritesSchema,
+	types: z.array(PokemonTypeSchema).optional(),
 });
 
 // ══════════════════════════════════════
@@ -52,7 +66,7 @@ export type PokemonDisplay = Pick<PokemonDisplayFields, 'displayName' | 'display
 	readonly imageUrl: string;
 };
 
-import { FALLBACK_IMAGE } from '../constants';
+import { FALLBACK_IMAGE } from '@constants';
 
 export function toPokemonDisplay(form: PokemonForm): PokemonDisplay {
 	const displayName = form.name

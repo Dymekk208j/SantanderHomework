@@ -1,4 +1,4 @@
-import { filterByPrefix } from '../../utils/filters';
+import { filterByPrefix } from '@utils/filters';
 
 describe('filterByPrefix', () => {
 	const mockItems = [

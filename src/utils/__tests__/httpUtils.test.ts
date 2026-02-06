@@ -1,10 +1,10 @@
-import { fetchAndValidate } from '../../utils/httpUtils';
+import { fetchAndValidate } from '@utils/httpUtils';
 import { z } from 'zod';
-import { PokemonApiError, PokemonNetworkError, PokemonValidationError, PokemonAbortError } from '../../errors';
-import { vi, type Mock } from 'vitest';
+import { PokemonApiError, PokemonNetworkError, PokemonValidationError, PokemonAbortError } from '@errors';
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
 // Mock delay to avoid waiting in tests
-vi.mock('../../utils/abortUtils', () => ({
+vi.mock('@utils/abortUtils', () => ({
 	delayWithAbort: vi.fn(() => Promise.resolve()),
 }));
 

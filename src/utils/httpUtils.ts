@@ -6,8 +6,8 @@ import {
 	PokemonValidationError,
 	PokemonAbortError,
 	PokemonUnknownError,
-} from '../errors';
-import { MAX_RETRIES, RETRY_BASE_DELAY_MS } from '../constants';
+} from '@errors';
+import { MAX_RETRIES, RETRY_BASE_DELAY_MS } from '@constants';
 import { isRetryable } from './retryUtils';
 import { delayWithAbort } from './abortUtils';
 

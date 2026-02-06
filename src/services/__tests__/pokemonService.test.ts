@@ -1,14 +1,14 @@
-import { searchPokemonsByName } from '../../services/pokemonService';
-import { fetchAllPokemonForms } from '../../services/pokemonCache';
-import { fetchAndValidate } from '../../utils/httpUtils';
-import { filterByPrefix } from '../../utils/filters';
-import { PokemonAbortError, PokemonNetworkError } from '../../errors';
-import type { PokemonForm } from '../../types/pokemon';
-import { vi, type Mock } from 'vitest';
+import { searchPokemonsByName } from '@services/pokemonService';
+import { fetchAllPokemonForms } from '@services/pokemonCache';
+import { fetchAndValidate } from '@utils/httpUtils';
+import { filterByPrefix } from '@utils/filters';
+import { PokemonAbortError, PokemonNetworkError } from '@errors';
+import type { PokemonForm } from '@app-types/pokemon';
+import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
 
-vi.mock('../../services/pokemonCache');
-vi.mock('../../utils/httpUtils');
-vi.mock('../../utils/filters');
+vi.mock('@services/pokemonCache');
+vi.mock('@utils/httpUtils');
+vi.mock('@utils/filters');
 
 const mockedFetchAllPokemonForms = fetchAllPokemonForms as Mock<typeof fetchAllPokemonForms>;
 const mockedFetchAndValidate = fetchAndValidate as Mock<typeof fetchAndValidate>;
@@ -55,7 +55,7 @@ describe('searchPokemonsByName', () => {
 
 	it('should search and return matching pokemon forms', async () => {
 		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0], mockAllPokemons[1]]);
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
 		mockedFetchAndValidate.mockResolvedValueOnce(mockPikachuForm).mockResolvedValueOnce(mockCharizardForm);
 
 		const result = await searchPokemonsByName('pi');
@@ -79,7 +79,7 @@ describe('searchPokemonsByName', () => {
 	it('should pass abort signal through all calls', async () => {
 		const controller = new AbortController();
 		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]]);
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
 		mockedFetchAndValidate.mockResolvedValue(mockPikachuForm);
 
 		await searchPokemonsByName('pikachu', controller.signal);
@@ -90,7 +90,7 @@ describe('searchPokemonsByName', () => {
 
 	it('should throw PokemonAbortError when any request is aborted', async () => {
 		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]]);
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
 		mockedFetchAndValidate.mockRejectedValue(new PokemonAbortError());
 
 		await expect(searchPokemonsByName('pikachu')).rejects.toThrow(PokemonAbortError);
@@ -98,7 +98,7 @@ describe('searchPokemonsByName', () => {
 
 	it('should silently ignore non-abort errors for individual pokemon fetches', async () => {
 		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0], mockAllPokemons[1]]);
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
 		mockedFetchAndValidate.mockResolvedValueOnce(mockPikachuForm).mockRejectedValueOnce(new PokemonNetworkError());
 
 		const result = await searchPokemonsByName('pi');
@@ -109,7 +109,7 @@ describe('searchPokemonsByName', () => {
 
 	it('should return empty array if all individual fetches fail', async () => {
 		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0], mockAllPokemons[1]]);
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
 		mockedFetchAndValidate.mockRejectedValue(new PokemonNetworkError());
 
 		const result = await searchPokemonsByName('pi');

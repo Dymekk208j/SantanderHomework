@@ -1,8 +1,8 @@
-import type { PokemonListItem } from '../types/pokemon';
-import { PokemonListResponseSchema } from '../types/pokemon';
-import { PokemonError } from '../errors';
-import { POKEMON_FORM_ENDPOINT, TOTAL_POKEMON_LIMIT } from '../constants';
-import { fetchAndValidate } from '../utils/httpUtils';
+import type { PokemonListItem } from '@app-types/pokemon';
+import { PokemonListResponseSchema } from '@app-types/pokemon';
+import { PokemonError } from '@errors';
+import { POKEMON_FORM_ENDPOINT, TOTAL_POKEMON_LIMIT } from '@constants';
+import { fetchAndValidate } from '@utils/httpUtils';
 
 let cachedListPromise: Promise<readonly PokemonListItem[]> | null = null;
 

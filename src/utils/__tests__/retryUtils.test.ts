@@ -1,5 +1,5 @@
-import { isRetryable } from '../../utils/retryUtils';
-import { PokemonApiError, PokemonNetworkError, PokemonValidationError, PokemonAbortError } from '../../errors';
+import { isRetryable } from '@utils/retryUtils';
+import { PokemonApiError, PokemonNetworkError, PokemonValidationError, PokemonAbortError } from '@errors';
 
 describe('isRetryable', () => {
 	it('should return true for 5xx API errors', () => {

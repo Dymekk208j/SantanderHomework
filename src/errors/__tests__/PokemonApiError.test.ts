@@ -1,4 +1,4 @@
-import { PokemonApiError } from '../../errors/PokemonApiError';
+import { PokemonApiError } from '@errors/PokemonApiError';
 
 describe('PokemonApiError', () => {
 	describe('isRetryable', () => {

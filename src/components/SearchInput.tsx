@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { SearchInputProps } from '../interfaces/SearchInputProps';
+import type { SearchInputProps } from '@interfaces/SearchInputProps';
 
 export const SearchInput: React.FC<SearchInputProps> = ({ value, onChange }) => (
 	<div className="mb-8">

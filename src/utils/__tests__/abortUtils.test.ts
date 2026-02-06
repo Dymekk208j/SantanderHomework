@@ -1,5 +1,5 @@
-import { delayWithAbort } from '../../utils/abortUtils';
-import { PokemonAbortError } from '../../errors';
+import { delayWithAbort } from '@utils/abortUtils';
+import { PokemonAbortError } from '@errors';
 import { vi } from 'vitest';
 
 describe('delayWithAbort', () => {

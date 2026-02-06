@@ -1,10 +1,10 @@
-import type { PokemonForm } from '../types/pokemon';
-import { PokemonFormSchema } from '../types/pokemon';
-import { PokemonAbortError } from '../errors';
-import { MAX_RESULTS } from '../constants';
-import { fetchAndValidate } from '../utils/httpUtils';
-import { fetchAllPokemonForms, clearPokemonCache } from './pokemonCache';
-import { filterByPrefix } from '../utils/filters';
+import type { PokemonForm } from '@app-types/pokemon';
+import { PokemonFormSchema } from '@app-types/pokemon';
+import { PokemonAbortError } from '@errors';
+import { MAX_RESULTS } from '@constants';
+import { fetchAndValidate } from '@utils/httpUtils';
+import { fetchAllPokemonForms, clearPokemonCache } from '@services/pokemonCache';
+import { filterByPrefix } from '@utils/filters';
 
 // Re-export for convenience
 export { clearPokemonCache, PokemonAbortError };

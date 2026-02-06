@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { Pokeball } from './components/Pokeball';
-import { SearchInput } from './components/SearchInput';
-import { PokemonList } from './components/PokemonList';
-import { usePokemonSearch } from './hooks/usePokemonSearch';
+import { Pokeball } from '@components/Pokeball';
+import { SearchInput } from '@components/SearchInput';
+import { PokemonList } from '@components/PokemonList';
+import { usePokemonSearch } from '@hooks/usePokemonSearch';
 
 const App: React.FC = () => {
 	const { query, setQuery, results, isLoading, error, retry } = usePokemonSearch();

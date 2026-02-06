@@ -1,9 +1,9 @@
-import { fetchAllPokemonForms, clearPokemonCache } from '../../services/pokemonCache';
-import { fetchAndValidate } from '../../utils/httpUtils';
-import { PokemonNetworkError } from '../../errors';
+import { fetchAllPokemonForms, clearPokemonCache } from '@services/pokemonCache';
+import { fetchAndValidate } from '@utils/httpUtils';
+import { PokemonNetworkError } from '@errors';
 import { vi, type Mock } from 'vitest';
 
-vi.mock('../../utils/httpUtils');
+vi.mock('@utils/httpUtils');
 
 const mockedFetchAndValidate = fetchAndValidate as Mock<typeof fetchAndValidate>;
 
