@@ -5,4 +5,5 @@ export interface MessageBoxProps {
 	readonly text: string;
 	readonly variant: 'loading' | 'error' | 'empty';
 	readonly extra?: ReactNode;
+	readonly action?: ReactNode;
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { BehaviorSubject, combineLatest, from, of } from 'rxjs';
 import { debounceTime, switchMap, catchError, map, distinctUntilChanged, tap, startWith } from 'rxjs/operators';
 import type { PokemonForm } from '@app-types/pokemon';
@@ -20,8 +20,8 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 		error: null,
 	});
 
-	const querySubject$ = useRef(new BehaviorSubject<string>('')).current;
-	const retrySubject$ = useRef(new BehaviorSubject<number>(0)).current;
+	const querySubject$ = useMemo(() => new BehaviorSubject<string>(''), []);
+	const retrySubject$ = useMemo(() => new BehaviorSubject<number>(0), []);
 	const abortControllerRef = useRef<AbortController | null>(null);
 
 	useEffect(() => {
@@ -86,9 +86,9 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 		};
 	}, [querySubject$, retrySubject$]);
 
-	const retry = () => {
+	const retry = useCallback(() => {
 		retrySubject$.next(retrySubject$.value + 1);
-	};
+	}, [retrySubject$]);
 
 	return {
 		query,

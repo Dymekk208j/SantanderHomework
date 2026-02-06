@@ -8,4 +8,8 @@ export class PokemonValidationError extends PokemonError {
 	) {
 		super(message, 'PokemonValidationError');
 	}
+
+	isRetryable(): boolean {
+		return false;
+	}
 }

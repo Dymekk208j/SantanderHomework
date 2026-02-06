@@ -29,14 +29,15 @@ describe('fetchAndValidate', () => {
 	it('should successfully fetch and validate data', async () => {
 		(global.fetch as Mock).mockResolvedValue({
 			ok: true,
-			json: async () => validData,
+			json: () => Promise.resolve(validData),
 		});
 
 		const result = await fetchAndValidate(mockUrl, mockSchema);
 
 		expect(result).toEqual(validData);
 		expect(global.fetch).toHaveBeenCalledTimes(1);
-		expect(global.fetch).toHaveBeenCalledWith(mockUrl, { signal: undefined });
+		// fetchAndValidate creates a timeout signal internally, so we can't check the exact signal
+		expect(global.fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ signal: expect.any(Object) }));
 	});
 
 	it('should throw PokemonApiError on non-OK response', async () => {
@@ -53,7 +54,7 @@ describe('fetchAndValidate', () => {
 	it('should throw PokemonValidationError on schema validation failure', async () => {
 		(global.fetch as Mock).mockResolvedValue({
 			ok: true,
-			json: async () => ({ invalid: 'data' }),
+			json: () => Promise.resolve({ invalid: 'data' }),
 		});
 
 		await expect(fetchAndValidate(mockUrl, mockSchema)).rejects.toThrow(PokemonValidationError);
@@ -87,7 +88,7 @@ describe('fetchAndValidate', () => {
 			})
 			.mockResolvedValueOnce({
 				ok: true,
-				json: async () => validData,
+				json: () => Promise.resolve(validData),
 			});
 
 		const result = await fetchAndValidate(mockUrl, mockSchema);
@@ -111,7 +112,7 @@ describe('fetchAndValidate', () => {
 		const networkError = new TypeError('Failed to fetch');
 		(global.fetch as Mock).mockRejectedValueOnce(networkError).mockResolvedValueOnce({
 			ok: true,
-			json: async () => validData,
+			json: () => Promise.resolve(validData),
 		});
 
 		const result = await fetchAndValidate(mockUrl, mockSchema);
@@ -137,12 +138,13 @@ describe('fetchAndValidate', () => {
 		const controller = new AbortController();
 		(global.fetch as Mock).mockResolvedValue({
 			ok: true,
-			json: async () => validData,
+			json: () => Promise.resolve(validData),
 		});
 
 		await fetchAndValidate(mockUrl, mockSchema, controller.signal);
 
-		expect(global.fetch).toHaveBeenCalledWith(mockUrl, { signal: controller.signal });
+		// fetchAndValidate creates a combined timeout signal, not the original controller.signal
+		expect(global.fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ signal: expect.any(Object) }));
 	});
 
 	it('should check signal before each retry attempt', async () => {

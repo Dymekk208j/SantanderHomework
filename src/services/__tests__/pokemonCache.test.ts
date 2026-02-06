@@ -29,8 +29,7 @@ describe('pokemonCache', () => {
 		expect(mockedFetchAndValidate).toHaveBeenCalledTimes(1);
 		expect(mockedFetchAndValidate).toHaveBeenCalledWith(
 			expect.stringContaining('pokemon-form?limit='),
-			expect.anything(),
-			undefined
+			expect.anything()
 		);
 	});
 
@@ -67,15 +66,6 @@ describe('pokemonCache', () => {
 		await fetchAllPokemonForms();
 
 		expect(mockedFetchAndValidate).toHaveBeenCalledTimes(2);
-	});
-
-	it('should pass abort signal to fetchAndValidate', async () => {
-		mockedFetchAndValidate.mockResolvedValue(mockResponse);
-		const controller = new AbortController();
-
-		await fetchAllPokemonForms(controller.signal);
-
-		expect(mockedFetchAndValidate).toHaveBeenCalledWith(expect.any(String), expect.anything(), controller.signal);
 	});
 
 	it('should freeze the results array', async () => {

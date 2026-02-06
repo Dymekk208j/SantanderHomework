@@ -53,18 +53,12 @@ export type PokemonForm = z.infer<typeof PokemonFormSchema>;
 /** Branded type for pokemon names that have been formatted for display */
 type DisplayName = string & { readonly __brand: 'DisplayName' };
 
-// Mapped type + Capitalize — teraz już wiem jak to działa 😎
-type PokemonDisplayFields = {
-	[K in keyof PokemonForm as `display${Capitalize<string & K>}`]: K extends 'name'
-		? DisplayName
-		: K extends 'id'
-			? string
-			: PokemonForm[K];
-};
-
-export type PokemonDisplay = Pick<PokemonDisplayFields, 'displayName' | 'displayId'> & {
+/** Display-friendly representation of Pokemon data */
+export interface PokemonDisplay {
+	readonly displayName: DisplayName;
+	readonly displayId: string;
 	readonly imageUrl: string;
-};
+}
 
 import { FALLBACK_IMAGE } from '@constants';
 

@@ -7,9 +7,35 @@ import {
 	PokemonAbortError,
 	PokemonUnknownError,
 } from '@errors';
-import { MAX_RETRIES, RETRY_BASE_DELAY_MS } from '@constants';
-import { isRetryable } from './retryUtils';
+import { MAX_RETRIES, RETRY_BASE_DELAY_MS, REQUEST_TIMEOUT_MS } from '@constants';
 import { delayWithAbort } from './abortUtils';
+
+/**
+ * Combines user abort signal with timeout signal.
+ * Returns a combined signal that aborts if either the user signal or timeout fires.
+ */
+function createTimeoutSignal(userSignal?: AbortSignal, timeoutMs: number = REQUEST_TIMEOUT_MS): AbortSignal {
+	if (!userSignal) {
+		return AbortSignal.timeout(timeoutMs);
+	}
+
+	const controller = new AbortController();
+
+	// Abort if user signal fires
+	if (userSignal.aborted) {
+		controller.abort(userSignal.reason);
+	} else {
+		userSignal.addEventListener('abort', () => controller.abort(userSignal.reason), { once: true });
+	}
+
+	// Abort on timeout
+	const timeoutId = setTimeout(() => controller.abort(new Error('Request timeout')), timeoutMs);
+
+	// Clean up timeout if aborted early
+	controller.signal.addEventListener('abort', () => clearTimeout(timeoutId), { once: true });
+
+	return controller.signal;
+}
 
 export async function fetchAndValidate<T>(url: string, schema: ZodSchema<T>, signal?: AbortSignal): Promise<T> {
 	let lastError: PokemonError | undefined;
@@ -18,7 +44,8 @@ export async function fetchAndValidate<T>(url: string, schema: ZodSchema<T>, sig
 		try {
 			signal?.throwIfAborted();
 
-			const response = await fetch(url, { signal });
+			const timeoutSignal = createTimeoutSignal(signal);
+			const response = await fetch(url, { signal: timeoutSignal });
 
 			if (!response.ok) {
 				throw new PokemonApiError(`API error: ${response.status} ${response.statusText}`, response.status);
@@ -38,13 +65,14 @@ export async function fetchAndValidate<T>(url: string, schema: ZodSchema<T>, sig
 				lastError = error;
 			} else if (error instanceof DOMException && error.name === 'AbortError') {
 				throw new PokemonAbortError();
-			} else if (error instanceof TypeError && error.message.includes('fetch')) {
+			} else if (error instanceof TypeError) {
+				// Any TypeError from fetch is a network error (CORS, DNS, connection failure, etc.)
 				lastError = new PokemonNetworkError();
 			} else {
 				lastError = new PokemonUnknownError(error instanceof Error ? error.message : 'Unknown error occurred', error);
 			}
 
-			if (attempt < MAX_RETRIES && lastError && isRetryable(lastError)) {
+			if (attempt < MAX_RETRIES && lastError && lastError.isRetryable()) {
 				await delayWithAbort(RETRY_BASE_DELAY_MS * (attempt + 1), signal);
 				continue;
 			}

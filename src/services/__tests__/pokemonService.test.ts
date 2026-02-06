@@ -61,7 +61,7 @@ describe('searchPokemonsByName', () => {
 		const result = await searchPokemonsByName('pi');
 
 		expect(result).toEqual([mockPikachuForm, mockCharizardForm]);
-		expect(mockedFetchAllPokemonForms).toHaveBeenCalledWith(undefined);
+		expect(mockedFetchAllPokemonForms).toHaveBeenCalledWith();
 		expect(mockedFilterByPrefix).toHaveBeenCalledWith(mockAllPokemons, 'pi', expect.any(Number));
 		expect(mockedFetchAndValidate).toHaveBeenCalledTimes(2);
 	});
@@ -84,7 +84,7 @@ describe('searchPokemonsByName', () => {
 
 		await searchPokemonsByName('pikachu', controller.signal);
 
-		expect(mockedFetchAllPokemonForms).toHaveBeenCalledWith(controller.signal);
+		expect(mockedFetchAllPokemonForms).toHaveBeenCalledWith();
 		expect(mockedFetchAndValidate).toHaveBeenCalledWith(expect.any(String), expect.anything(), controller.signal);
 	});
 
@@ -121,9 +121,9 @@ describe('searchPokemonsByName', () => {
 		mockedFetchAllPokemonForms.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue(mockAllPokemons);
 
-		let fetchCallCount = 0;
+		let _fetchCallCount = 0;
 		mockedFetchAndValidate.mockImplementation(() => {
-			fetchCallCount++;
+			_fetchCallCount++;
 			// Simulate parallel execution - all should start before any completes
 			return Promise.resolve(mockPikachuForm);
 		});

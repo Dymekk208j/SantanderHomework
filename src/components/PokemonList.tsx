@@ -1,11 +1,12 @@
-import * as React from 'react';
+import { useMemo } from 'react';
+import type { FC } from 'react';
 import { toPokemonDisplay } from '@app-types/pokemon';
 import { PokemonCard } from '@components/PokemonCard';
 import { LoadingDots } from '@components/LoadingDots';
 import type { PokemonListProps } from '@interfaces/PokemonListProps';
 import type { MessageBoxProps } from '@interfaces/MessageBoxProps';
 
-const MessageBox: React.FC<MessageBoxProps> = ({ icon, text, variant, extra }) => {
+const MessageBox: FC<MessageBoxProps> = ({ icon, text, variant, extra, action }) => {
 	const variantStyles = {
 		loading: 'bg-poke-surface border-white/[0.06] text-poke-secondary',
 		error: 'bg-red-500/5 border-red-400/20 text-red-400',
@@ -20,25 +21,31 @@ const MessageBox: React.FC<MessageBoxProps> = ({ icon, text, variant, extra }) =
 		>
 			{extra}
 			{icon && <span className="mb-2 block text-2xl">{icon}</span>}
-			<span className="text-sm font-medium">{text}</span>
+			<span className={`text-sm font-medium ${action ? 'mb-3 block' : ''}`}>{text}</span>
+			{action}
 		</div>
 	);
 };
 
-export const PokemonList: React.FC<PokemonListProps> = ({ pokemons, isLoading, error, hasQuery, onRetry }) => {
+export const PokemonList: FC<PokemonListProps> = ({ pokemons, isLoading, error, hasQuery, onRetry }) => {
+	const displayPokemons = useMemo(() => pokemons.map(toPokemonDisplay), [pokemons]);
+
 	if (error) {
 		return (
-			<div className="rounded-[14px] border border-red-400/20 bg-red-500/5 px-5 py-6 text-center" role="alert">
-				<span className="mb-2 block text-2xl">⚠️</span>
-				<span className="mb-3 block text-sm font-medium text-red-400">{error}</span>
-				<button
-					type="button"
-					onClick={onRetry}
-					className="rounded-lg border border-poke-red/30 bg-poke-red/20 px-4 py-2 text-sm font-semibold text-poke-red transition-all duration-150 hover:bg-poke-red/30 active:scale-95"
-				>
-					Try again
-				</button>
-			</div>
+			<MessageBox
+				icon="⚠️"
+				text={error}
+				variant="error"
+				action={
+					<button
+						type="button"
+						onClick={onRetry}
+						className="rounded-lg border border-poke-red/30 bg-poke-red/20 px-4 py-2 text-sm font-semibold text-poke-red transition-all duration-150 hover:bg-poke-red/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-poke-red focus-visible:ring-offset-2 focus-visible:ring-offset-poke-bg active:scale-95"
+					>
+						Try again
+					</button>
+				}
+			/>
 		);
 	}
 
@@ -60,8 +67,8 @@ export const PokemonList: React.FC<PokemonListProps> = ({ pokemons, isLoading, e
 				{pokemons.length} {pokemons.length === 1 ? 'result' : 'results'}
 			</p>
 			<ul className="flex flex-col gap-3" role="list" aria-label="Search results">
-				{pokemons.map((pokemon, index) => (
-					<PokemonCard key={pokemon.id} pokemon={toPokemonDisplay(pokemon)} index={index} />
+				{displayPokemons.map((pokemon, index) => (
+					<PokemonCard key={pokemon.displayId} pokemon={pokemon} index={index} />
 				))}
 			</ul>
 		</div>

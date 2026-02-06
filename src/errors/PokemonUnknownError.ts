@@ -8,4 +8,8 @@ export class PokemonUnknownError extends PokemonError {
 	) {
 		super(message, 'PokemonUnknownError');
 	}
+
+	isRetryable(): boolean {
+		return false;
+	}
 }

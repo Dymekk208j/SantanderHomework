@@ -23,6 +23,7 @@ npm run preview    # podgląd builda
 - RxJS
 - Zod
 - Vitest
+- ESLint (typescript-eslint + react-hooks)
 
 ## Czemu takie technologie?
 
@@ -40,13 +41,13 @@ npm run preview    # podgląd builda
 
 ```
 src/
-├── components/     # komponenty React
+├── components/     # komponenty React (w tym ErrorBoundary)
 ├── hooks/          # custom hooki
 ├── services/       # komunikacja z API, cache
 ├── utils/          # helpery
-├── types/          # typy TS
+├── types/          # typy TS + display utilities
 ├── interfaces/     # interfejsy propsów
-└── errors/         # klasy błędów
+└── errors/         # hierarchia klas błędów (z polimorficznym isRetryable)
 ```
 
 Struktura przeniesiona z tego jak organizuję kod w Angularze - wydzielone serwisy, osobne typy, hierarchia błędów. Doczytałem, że w React częściej grupuje się po feature'ach, ale na razie taki podział jest jedynym jaki znam i przy tej skali aplikacji nie powinno to przeszkadzać. Przy tak małej aplikacji też ciężko podzielić na "feature'y", bo wszystko jest ze sobą ściśle powiązane.
@@ -55,11 +56,13 @@ Struktura przeniesiona z tego jak organizuję kod w Angularze - wydzielone serwi
 
 - Wyszukiwanie Pokémonów po nazwie
 - Debouncing żeby nie spamować API
-- Retry przy błędach sieciowych
+- Retry przy błędach sieciowych (polimorficzny `isRetryable()` na hierarchii błędów)
 - Cache wyników (żeby nie odpytywać dwa razy o to samo)
-- Timeout na requesty
+- Timeout na requesty (10s)
 - Anulowanie poprzednich requestów przy nowym wyszukiwaniu
 - Obsługa błędów z konkretnymi komunikatami
+- Error Boundary - łapie błędy renderowania i wyświetla fallback UI
+- Memoizacja komponentów (`React.memo`, `useMemo`, `useCallback`)
 
 ## Komendy
 
@@ -80,11 +83,10 @@ Testy napisane w Vitest. Skupiłem się na logice biznesowej, nie na komponentac
 **Co jest pokryte:**
 
 - `utils/filters.ts` - filtrowanie po prefiksie (100%)
-- `utils/retryUtils.ts` - czy błąd nadaje się do retry (100%)
 - `errors/PokemonApiError.ts` - klasyfikacja błędów HTTP (100%)
 - `services/pokemonCache.ts` - cache (100%)
 - `services/pokemonService.ts` - główna logika szukania (~96%)
-- `utils/httpUtils.ts` - fetch z retry i walidacją (~96%)
+- `utils/httpUtils.ts` - fetch z retry, timeout i walidacją (~96%)
 - `utils/abortUtils.ts` - delay z abort (~96%)
 
 **Czemu brak testów na komponenty i hooki?**

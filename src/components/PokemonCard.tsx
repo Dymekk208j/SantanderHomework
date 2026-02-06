@@ -1,7 +1,8 @@
-import * as React from 'react';
+import { memo } from 'react';
+import type { FC } from 'react';
 import type { PokemonCardProps } from '@interfaces/PokemonCardProps';
 
-export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, index }) => {
+const PokemonCardComponent: FC<PokemonCardProps> = ({ pokemon, index }) => {
 	const delayClass = `card-delay-${index + 1}`;
 
 	return (
@@ -39,3 +40,5 @@ export const PokemonCard: React.FC<PokemonCardProps> = ({ pokemon, index }) => {
 		</li>
 	);
 };
+
+export const PokemonCard = memo(PokemonCardComponent);

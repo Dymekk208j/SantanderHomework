@@ -5,4 +5,8 @@ export class PokemonAbortError extends PokemonError {
 	constructor(message: string = 'Request was aborted') {
 		super(message, 'PokemonAbortError');
 	}
+
+	isRetryable(): boolean {
+		return false;
+	}
 }

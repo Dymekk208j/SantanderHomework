@@ -5,4 +5,7 @@ export abstract class PokemonError extends Error {
 		this.name = name;
 		Object.setPrototypeOf(this, new.target.prototype);
 	}
+
+	/** Returns true if this error should trigger a retry */
+	abstract isRetryable(): boolean;
 }

@@ -10,12 +10,16 @@ export function clearPokemonCache(): void {
 	cachedListPromise = null;
 }
 
-export function fetchAllPokemonForms(signal?: AbortSignal): Promise<readonly PokemonListItem[]> {
+/**
+ * Fetches all Pokemon forms. The result is cached - subsequent calls return the same promise.
+ * Note: This function does NOT accept an AbortSignal to avoid sharing abort state between callers.
+ * If you need abort support, wrap the call with your own abort logic (e.g., Promise.race).
+ */
+export function fetchAllPokemonForms(): Promise<readonly PokemonListItem[]> {
 	if (!cachedListPromise) {
 		cachedListPromise = fetchAndValidate(
 			`${POKEMON_FORM_ENDPOINT}?limit=${TOTAL_POKEMON_LIMIT}`,
-			PokemonListResponseSchema,
-			signal
+			PokemonListResponseSchema
 		)
 			.then((data) => Object.freeze(data.results))
 			.catch((error: PokemonError) => {
