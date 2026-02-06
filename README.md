@@ -1,108 +1,92 @@
 # Pokémon Search App
 
-Aplikacja do wyszukiwania Pokémonów wykorzystująca PokeAPI. Projekt stworzony jako zadanie rekrutacyjne.
+Wyszukiwarka Pokémonów oparta o PokeAPI. Zadanie rekrutacyjne.
 
-## 🚀 Instalacja i uruchomienie
+To mój pierwszy projekt w React - na co dzień pracuję z Angularem. Pewne rzeczy mogą wyglądać "po angularowemu" (struktura folderów, wydzielone serwisy, RxJS) bo to jedyne co znam. Starałem się doczytywać jak rzeczy robi się w React, ale na pewno nie wszystko udało mi się ogarnąć.
 
-### Wymagania
+## Jak odpalić
 
-- Node.js (wersja 18 lub wyższa)
-- npm lub yarn
-
-### Instalacja zależności
+Node.js 18+ i npm.
 
 ```bash
 npm install
+npm run dev        # dev server na http://localhost:5173
+npm run build      # build produkcyjny
+npm run preview    # podgląd builda
 ```
 
-### Uruchomienie w trybie deweloperskim
+## Stack
 
-```bash
-npm run dev
-```
+- React 18 + TypeScript
+- Vite
+- TailwindCSS
+- RxJS
+- Zod
+- Vitest
 
-Aplikacja będzie dostępna domyślnie pod adresem `http://localhost:5173`
+## Czemu takie technologie?
 
-### Build produkcyjny
+**Vite** - Na rozmowie wspominałem że znam Webpacka. Doczytałem, że w Angularze od wersji 17+ Vite zastąpił Webpacka pod spodem, a w React jest teraz standardem do nowych projektów. Szybki dev server, HMR od razu, zero konfiguracji - spory upgrade względem Webpacka.
 
-```bash
-npm run build
-```
+**Vitest** - Angular 21 niedawno przesiadł się na Vitest i nie miałem jeszcze okazji go przetestować. Zadanie rekrutacyjne to dobry moment żeby się z nim zapoznać. API prawie identyczne jak w Jest, a dziedziczy konfigurację z Vite, więc zero dodatkowego setupu.
 
-### Podgląd buildu produkcyjnego
+**TailwindCSS** - Aktualnie testuje sobie ten framework w wolnej chwili, to postanowiłem, że skorzystam :). W Angularze korzystałem głównie z Angular Material, Tailwind to dla mnie zupełnie inne podejście do stylowania.
 
-```bash
-npm run preview
-```
+**RxJS** - Wiem, że w tym wypadku to overkill i normalnie wystarczy `useState` + `useEffect` albo coś w stylu React Query. Ale RxJS używałem sporo w Angularze i sięgnąłem po niego instynktownie - wiedziałem jak ogarnąć cancel requestów, debouncing, retry i error handling w jednym strumieniu. Jak będę lepiej znał React, pewnie podszedłbym do tego inaczej.
 
-## 🛠️ Technologie
+**Zod** - Doczytałem, że w ekosystemie React Zod jest dość standardowym wyborem do walidacji. TypeScript sprawdza typy tylko w compile-time, a w runtimie nikt nie zagwarantuje, że PokeAPI zwróci to co oczekuję. Zod waliduje dane na wejściu i generuje typy przez `z.infer`, więc nie muszę nic duplikować. Jak API zmieni format odpowiedzi, od razu to wychwyci.
 
-- **React 18** + **TypeScript** - framework i język
-- **Vite** - bundler i dev server
-- **TailwindCSS** - stylowanie
-- **RxJS** - reaktywne zarządzanie stanem i asynchronicznością
-- **Zod** - walidacja danych z API
-
-## 💡 Decyzje projektowe
-
-### TailwindCSS
-
-Zdecydowałem się na TailwindCSS, ponieważ aktualnie się go uczę i chciałem wykorzystać tę okazję do praktycznego zastosowania tej technologii.
-
-### RxJS
-
-Świadomie użyłem RxJS mimo że jest overkillem w tym przypadku. Wynika to z mojej znajomości tej biblioteki i chęci zaprezentowania umiejętności pracy z reaktywnymi streamami danych. W tak małej aplikacji prostsze rozwiązanie (np. useState + useEffect) byłoby wystarczające, ale RxJS pozwala na eleganckie zarządzanie:
-
-- Anulowaniem requestów przy nowym wyszukiwaniu
-- Debouncingiem
-- Retry logic
-- Obsługą błędów w jednym miejscu
-
-### Modularność
-
-Starałem się zachować wysoką modularność pomimo że jest to mała aplikacja. Wynika to z moich preferencji dotyczących struktury kodu - wolę mieć dobrze zorganizowane, łatwe do testowania i rozszerzania komponenty, nawet jeśli projekt jest niewielki. Struktura została podzielona na:
-
-- `components/` - komponenty React
-- `hooks/` - custom hooki
-- `services/` - logika biznesowa i komunikacja z API
-- `utils/` - funkcje pomocnicze
-- `types/` - definicje typów
-- `interfaces/` - interfejsy komponentów
-- `errors/` - hierarchia błędów
-
-## 📁 Struktura projektu
+## Struktura
 
 ```
 src/
-├── components/      # Komponenty React
-├── hooks/          # Custom hooki
-├── services/       # Serwisy (API, cache)
-├── utils/          # Funkcje pomocnicze
-├── types/          # Typy TypeScript
-├── interfaces/     # Interfejsy props
-└── errors/         # Klasy błędów
+├── components/     # komponenty React
+├── hooks/          # custom hooki
+├── services/       # komunikacja z API, cache
+├── utils/          # helpery
+├── types/          # typy TS
+├── interfaces/     # interfejsy propsów
+└── errors/         # klasy błędów
 ```
 
-## ✨ Funkcjonalności
+Struktura przeniesiona z tego jak organizuję kod w Angularze - wydzielone serwisy, osobne typy, hierarchia błędów. Doczytałem, że w React częściej grupuje się po feature'ach, ale na razie taki podział jest jedynym jaki znam i przy tej skali aplikacji nie powinno to przeszkadzać. Przy tak małej aplikacji też ciężko podzielić na "feature'y", bo wszystko jest ze sobą ściśle powiązane.
 
-- 🔍 Wyszukiwanie Pokémonów po nazwie
-- ⚡ Debouncing zapytań
-- 🔄 Automatyczne retry przy błędach
-- 💾 Cache wyników
-- ⏱️ Timeout requestów
-- 🎨 Responsywny design
-- 🚫 Obsługa anulowania requestów
-- ⚠️ Szczegółowa obsługa błędów
+## Co robi aplikacja
 
-## 📝 Dodatkowe komendy
+- Wyszukiwanie Pokémonów po nazwie
+- Debouncing żeby nie spamować API
+- Retry przy błędach sieciowych
+- Cache wyników (żeby nie odpytywać dwa razy o to samo)
+- Timeout na requesty
+- Anulowanie poprzednich requestów przy nowym wyszukiwaniu
+- Obsługa błędów z konkretnymi komunikatami
+
+## Komendy
 
 ```bash
-# Formatowanie kodu
-npm run format
-
-# Sprawdzenie formatowania
-npm run format:check
-
-# Linting
-npm run lint
+npm test                # testy
+npm run test:watch      # testy w trybie watch
+npm run test:ui         # Vitest UI
+npm run test:coverage   # coverage report
+npm run format          # formatowanie
+npm run format:check    # sprawdzenie formatowania
+npm run lint            # linting
 ```
+
+## Testy
+
+Testy napisane w Vitest. Skupiłem się na logice biznesowej, nie na komponentach - to jest część, którą umiem testować niezależnie od frameworka.
+
+**Co jest pokryte:**
+
+- `utils/filters.ts` - filtrowanie po prefiksie (100%)
+- `utils/retryUtils.ts` - czy błąd nadaje się do retry (100%)
+- `errors/PokemonApiError.ts` - klasyfikacja błędów HTTP (100%)
+- `services/pokemonCache.ts` - cache (100%)
+- `services/pokemonService.ts` - główna logika szukania (~96%)
+- `utils/httpUtils.ts` - fetch z retry i walidacją (~96%)
+- `utils/abortUtils.ts` - delay z abort (~96%)
+
+**Czemu brak testów na komponenty i hooki?**
+
+Nie znam jeszcze React Testing Library na tyle, żeby pisać w nim sensowne testy w rozsądnym czasie. Komponenty lepiej testować integracyjnie albo E2E (osobiście korzystam z Playwright), a na naukę RTL w ramach tego zadania nie starczyło czasu. To też tylko w ramach proof of concept.
