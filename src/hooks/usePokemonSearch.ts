@@ -6,6 +6,8 @@ import { searchPokemonsByName } from '@services/pokemonService';
 import { PokemonAbortError } from '@errors';
 import type { UsePokemonSearchResult } from '@interfaces/UsePokemonSearchResult';
 
+const EMPTY_RESULTS: readonly PokemonForm[] = [];
+
 interface SearchState {
 	results: readonly PokemonForm[];
 	isLoading: boolean;
@@ -31,16 +33,16 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 	useEffect(() => {
 		const subscription = combineLatest([querySubject$, retrySubject$])
 			.pipe(
-				map(([q]) => q.trim()),
+				map(([q, r]) => ({ query: q.trim(), retry: r })),
 				debounceTime(300),
-				distinctUntilChanged(),
+				distinctUntilChanged((a, b) => a.query === b.query && a.retry === b.retry),
 				tap(() => {
 					abortControllerRef.current?.abort();
 				}),
-				switchMap((trimmedQuery) => {
-					if (!trimmedQuery) {
+				switchMap(({ query }) => {
+					if (!query) {
 						return of({
-							results: [] as readonly PokemonForm[],
+							results: EMPTY_RESULTS,
 							isLoading: false,
 							error: null,
 						});
@@ -49,7 +51,7 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 					const controller = new AbortController();
 					abortControllerRef.current = controller;
 
-					return from(searchPokemonsByName(trimmedQuery, controller.signal)).pipe(
+					return from(searchPokemonsByName(query, controller.signal)).pipe(
 						map((results) => ({
 							results,
 							isLoading: false,

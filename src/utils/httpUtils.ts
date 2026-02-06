@@ -1,4 +1,4 @@
-import { ZodSchema } from 'zod';
+import { z } from 'zod';
 import {
 	PokemonError,
 	PokemonApiError,
@@ -21,23 +21,33 @@ function createTimeoutSignal(userSignal?: AbortSignal, timeoutMs: number = REQUE
 
 	const controller = new AbortController();
 
+	// Handler for user abort
+	const userAbortHandler = () => controller.abort(userSignal.reason);
+
 	// Abort if user signal fires
 	if (userSignal.aborted) {
 		controller.abort(userSignal.reason);
 	} else {
-		userSignal.addEventListener('abort', () => controller.abort(userSignal.reason), { once: true });
+		userSignal.addEventListener('abort', userAbortHandler, { once: true });
 	}
 
 	// Abort on timeout
 	const timeoutId = setTimeout(() => controller.abort(new Error('Request timeout')), timeoutMs);
 
-	// Clean up timeout if aborted early
-	controller.signal.addEventListener('abort', () => clearTimeout(timeoutId), { once: true });
+	// Clean up both timeout and listener if aborted early
+	controller.signal.addEventListener(
+		'abort',
+		() => {
+			clearTimeout(timeoutId);
+			userSignal.removeEventListener('abort', userAbortHandler);
+		},
+		{ once: true }
+	);
 
 	return controller.signal;
 }
 
-export async function fetchAndValidate<T>(url: string, schema: ZodSchema<T>, signal?: AbortSignal): Promise<T> {
+export async function fetchAndValidate<T>(url: string, schema: z.ZodType<T>, signal?: AbortSignal): Promise<T> {
 	let lastError: PokemonError | undefined;
 
 	for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {

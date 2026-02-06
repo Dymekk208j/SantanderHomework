@@ -37,7 +37,8 @@ describe('fetchAndValidate', () => {
 		expect(result).toEqual(validData);
 		expect(global.fetch).toHaveBeenCalledTimes(1);
 		// fetchAndValidate creates a timeout signal internally, so we can't check the exact signal
-		expect(global.fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ signal: expect.any(Object) }));
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+		expect(global.fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ signal: expect.any(AbortSignal) }));
 	});
 
 	it('should throw PokemonApiError on non-OK response', async () => {
@@ -144,7 +145,8 @@ describe('fetchAndValidate', () => {
 		await fetchAndValidate(mockUrl, mockSchema, controller.signal);
 
 		// fetchAndValidate creates a combined timeout signal, not the original controller.signal
-		expect(global.fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ signal: expect.any(Object) }));
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+		expect(global.fetch).toHaveBeenCalledWith(mockUrl, expect.objectContaining({ signal: expect.any(AbortSignal) }));
 	});
 
 	it('should check signal before each retry attempt', async () => {

@@ -33,9 +33,9 @@ npm run preview    # podgląd builda
 
 **TailwindCSS** - Aktualnie testuje sobie ten framework w wolnej chwili, to postanowiłem, że skorzystam :). W Angularze korzystałem głównie z Angular Material, Tailwind to dla mnie zupełnie inne podejście do stylowania.
 
-**RxJS** - Wiem, że w tym wypadku to overkill i normalnie wystarczy `useState` + `useEffect` albo coś w stylu React Query. Ale RxJS używałem sporo w Angularze i sięgnąłem po niego instynktownie - wiedziałem jak ogarnąć cancel requestów, debouncing, retry i error handling w jednym strumieniu. Jak będę lepiej znał React, pewnie podszedłbym do tego inaczej.
+**RxJS** - Wiem, że w tym wypadku to overkill i normalnie wystarczy `useState` + `useEffect` albo coś w stylu React Query. Ale RxJS używałem sporo w Angularze i sięgnąłem po niego instynktownie - wiedziałem jak ogarnąć cancel requestów, debouncing i error handling w jednym strumieniu. Pipeline w `usePokemonSearch` łączy query z retry counterem przez `combineLatest`, dzięki czemu "Try again" działa nawet bez zmiany wyszukiwanej frazy. Jak będę lepiej znał React, pewnie podszedłbym do tego inaczej.
 
-**Zod** - Doczytałem, że w ekosystemie React Zod jest dość standardowym wyborem do walidacji. TypeScript sprawdza typy tylko w compile-time, a w runtimie nikt nie zagwarantuje, że PokeAPI zwróci to co oczekuję. Zod waliduje dane na wejściu i generuje typy przez `z.infer`, więc nie muszę nic duplikować. Jak API zmieni format odpowiedzi, od razu to wychwyci.
+**Zod** - W ekosystemie React to dość standardowy wybór. TypeScript sprawdza typy tylko w compile-time, a w runtimie nikt nie zagwarantuje, że PokeAPI zwróci to co oczekuję. Zod waliduje dane na wejściu i generuje typy przez `z.infer`, więc nie muszę nic duplikować. Jak API zmieni format odpowiedzi, od razu to wychwyci.
 
 ## Struktura
 
@@ -44,25 +44,26 @@ src/
 ├── components/     # komponenty React (w tym ErrorBoundary)
 ├── hooks/          # custom hooki
 ├── services/       # komunikacja z API, cache
-├── utils/          # helpery
-├── types/          # typy TS + display utilities
+├── utils/          # helpery (abort, http, formattery)
+├── types/          # typy TS (branded types, Zod schemas)
 ├── interfaces/     # interfejsy propsów
-└── errors/         # hierarchia klas błędów (z polimorficznym isRetryable)
+└── errors/         # hierarchia klas błędów
 ```
 
 Struktura przeniesiona z tego jak organizuję kod w Angularze - wydzielone serwisy, osobne typy, hierarchia błędów. Doczytałem, że w React częściej grupuje się po feature'ach, ale na razie taki podział jest jedynym jaki znam i przy tej skali aplikacji nie powinno to przeszkadzać. Przy tak małej aplikacji też ciężko podzielić na "feature'y", bo wszystko jest ze sobą ściśle powiązane.
 
 ## Co robi aplikacja
 
-- Wyszukiwanie Pokémonów po nazwie
-- Debouncing żeby nie spamować API
-- Retry przy błędach sieciowych (polimorficzny `isRetryable()` na hierarchii błędów)
-- Cache wyników (żeby nie odpytywać dwa razy o to samo)
-- Timeout na requesty (10s)
-- Anulowanie poprzednich requestów przy nowym wyszukiwaniu
-- Obsługa błędów z konkretnymi komunikatami
-- Error Boundary - łapie błędy renderowania i wyświetla fallback UI
-- Memoizacja komponentów (`React.memo`, `useMemo`, `useCallback`)
+- Wyszukiwanie po nazwie (filtrowanie po prefiksie, limit wyników)
+- Debouncing 300ms żeby nie spamować API
+- Retry przy błędach sieciowych - linear backoff, a hierarchia błędów z `isRetryable()` decyduje czy retry ma sens
+- Przycisk "Try again" - retry counter w RxJS pipeline żeby można było ponowić to samo zapytanie
+- Cache z deduplikacją - współbieżne requesty o te same dane dzielą jednego promisa
+- Timeout 10s na requesty, łączony z user abort signal
+- Anulowanie poprzedniego wyszukiwania przy nowym (AbortController, czyszczenie listenerów)
+- Konkretne komunikaty błędów (sieć, API, walidacja, timeout)
+- Error Boundary łapiący błędy renderowania
+- `React.memo`, `useMemo`, `useCallback` gdzie miało to sens
 
 ## Komendy
 
@@ -80,7 +81,7 @@ npm run lint            # linting
 
 Testy napisane w Vitest. Skupiłem się na logice biznesowej, nie na komponentach - to jest część, którą umiem testować niezależnie od frameworka.
 
-**Co jest pokryte:**
+Co jest pokryte:
 
 - `utils/filters.ts` - filtrowanie po prefiksie (100%)
 - `errors/PokemonApiError.ts` - klasyfikacja błędów HTTP (100%)
@@ -89,6 +90,4 @@ Testy napisane w Vitest. Skupiłem się na logice biznesowej, nie na komponentac
 - `utils/httpUtils.ts` - fetch z retry, timeout i walidacją (~96%)
 - `utils/abortUtils.ts` - delay z abort (~96%)
 
-**Czemu brak testów na komponenty i hooki?**
-
-Nie znam jeszcze React Testing Library na tyle, żeby pisać w nim sensowne testy w rozsądnym czasie. Komponenty lepiej testować integracyjnie albo E2E (osobiście korzystam z Playwright), a na naukę RTL w ramach tego zadania nie starczyło czasu. To też tylko w ramach proof of concept.
+Brak testów na komponenty i hooki - nie znam jeszcze React Testing Library na tyle żeby pisać w nim sensowne testy w rozsądnym czasie. Komponenty lepiej testować integracyjnie albo E2E (osobiście korzystam z Playwright), a na naukę RTL w ramach tego zadania nie starczyło czasu.

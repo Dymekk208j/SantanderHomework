@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { FC } from 'react';
-import { toPokemonDisplay } from '@app-types/pokemon';
+import { toPokemonDisplay } from '@utils/pokemonFormatters';
 import { PokemonCard } from '@components/PokemonCard';
 import { LoadingDots } from '@components/LoadingDots';
 import type { PokemonListProps } from '@interfaces/PokemonListProps';
