@@ -1,88 +1,101 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { BehaviorSubject, combineLatest, from, of } from 'rxjs';
+import { debounceTime, switchMap, catchError, map, distinctUntilChanged, tap, startWith } from 'rxjs/operators';
 import type { PokemonForm } from '../types/pokemon';
 import { searchPokemonsByName } from '../services/pokemonService';
-import { useDebounce } from './useDebounce';
+import { PokemonAbortError } from '../errors';
+import type { UsePokemonSearchResult } from '../interfaces/UsePokemonSearchResult';
 
-interface UsePokemonSearchResult {
-  readonly query: string;
-  readonly setQuery: (value: string) => void;
-  readonly results: readonly PokemonForm[];
-  readonly isLoading: boolean;
-  readonly error: string | null;
-  readonly retry: () => void;
+interface SearchState {
+	results: readonly PokemonForm[];
+	isLoading: boolean;
+	error: string | null;
 }
 
 export function usePokemonSearch(): UsePokemonSearchResult {
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<readonly PokemonForm[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+	const [query, setQuery] = useState('');
+	const [state, setState] = useState<SearchState>({
+		results: [],
+		isLoading: false,
+		error: null,
+	});
 
-  const debouncedQuery = useDebounce(query);
-  const abortControllerRef = useRef<AbortController | null>(null);
+	const querySubject$ = useRef(new BehaviorSubject<string>('')).current;
+	const retrySubject$ = useRef(new BehaviorSubject<number>(0)).current;
+	const abortControllerRef = useRef<AbortController | null>(null);
 
-  const retry = useCallback(() => {
-    setRetryCount((prev) => prev + 1);
-  }, []);
+	useEffect(() => {
+		querySubject$.next(query);
+	}, [query, querySubject$]);
 
-  useEffect(() => {
-    abortControllerRef.current?.abort();
+	useEffect(() => {
+		const subscription = combineLatest([querySubject$, retrySubject$])
+			.pipe(
+				map(([q]) => q.trim()),
+				debounceTime(300),
+				distinctUntilChanged(),
+				tap(() => {
+					abortControllerRef.current?.abort();
+				}),
+				switchMap((trimmedQuery) => {
+					if (!trimmedQuery) {
+						return of({
+							results: [] as readonly PokemonForm[],
+							isLoading: false,
+							error: null,
+						});
+					}
 
-    const trimmedQuery = debouncedQuery.trim();
+					const controller = new AbortController();
+					abortControllerRef.current = controller;
 
-    if (!trimmedQuery) {
-      setResults([]);
-      setError(null);
-      setIsLoading(false);
-      return;
-    }
+					return from(searchPokemonsByName(trimmedQuery, controller.signal)).pipe(
+						map((results) => ({
+							results,
+							isLoading: false,
+							error: null,
+						})),
+						catchError((err: unknown) => {
+							if (err instanceof PokemonAbortError) {
+								return of({
+									results: [] as readonly PokemonForm[],
+									isLoading: false,
+									error: null,
+								});
+							}
 
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
+							return of({
+								results: [] as readonly PokemonForm[],
+								isLoading: false,
+								error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.',
+							});
+						}),
+						startWith({
+							results: [] as readonly PokemonForm[],
+							isLoading: true,
+							error: null,
+						})
+					);
+				})
+			)
+			.subscribe(setState);
 
-    let isCancelled = false;
+		return () => {
+			subscription.unsubscribe();
+			abortControllerRef.current?.abort();
+		};
+	}, [querySubject$, retrySubject$]);
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
+	const retry = () => {
+		retrySubject$.next(retrySubject$.value + 1);
+	};
 
-      try {
-        const pokemons = await searchPokemonsByName(
-          trimmedQuery,
-          abortController.signal
-        );
-
-        if (!isCancelled) {
-          setResults(pokemons);
-        }
-      } catch (err) {
-        if (isCancelled) return;
-
-        if (err instanceof DOMException && err.name === 'AbortError') {
-          return;
-        }
-
-        setError(
-          err instanceof Error
-            ? err.message
-            : 'An unexpected error occurred. Please try again.'
-        );
-        setResults([]);
-      } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      isCancelled = true;
-      abortController.abort();
-    };
-  }, [debouncedQuery, retryCount]);
-
-  return { query, setQuery, results, isLoading, error, retry };
+	return {
+		query,
+		setQuery,
+		results: state.results,
+		isLoading: state.isLoading,
+		error: state.error,
+		retry,
+	};
 }
