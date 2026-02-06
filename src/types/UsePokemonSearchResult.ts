@@ -6,5 +6,6 @@ export interface UsePokemonSearchResult {
 	readonly results: readonly PokemonForm[];
 	readonly isLoading: boolean;
 	readonly error: string | null;
+	readonly isRetryable: boolean;
 	readonly retry: () => void;
 }

@@ -5,7 +5,7 @@ import { PokemonList } from '@components/PokemonList';
 import { usePokemonSearch } from '@hooks/usePokemonSearch';
 
 const App: FC = () => {
-	const { query, setQuery, results, isLoading, error, retry } = usePokemonSearch();
+	const { query, setQuery, results, isLoading, error, isRetryable, retry } = usePokemonSearch();
 
 	return (
 		<div
@@ -30,6 +30,7 @@ const App: FC = () => {
 					pokemons={results}
 					isLoading={isLoading}
 					error={error}
+					isRetryable={isRetryable}
 					hasQuery={query.trim().length > 0}
 					onRetry={retry}
 				/>

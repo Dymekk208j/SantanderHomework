@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import type { FC } from 'react';
-import type { PokemonCardProps } from '@interfaces/PokemonCardProps';
+import type { PokemonCardProps } from '@app-types/PokemonCardProps';
+
+const ANIMATION_DELAY_STEP_MS = 60;
 
 const PokemonCardComponent: FC<PokemonCardProps> = ({ pokemon, index }) => {
-	const delayClass = `card-delay-${index + 1}`;
-
 	return (
 		<li
 			className={`
@@ -14,9 +14,10 @@ const PokemonCardComponent: FC<PokemonCardProps> = ({ pokemon, index }) => {
 				hover:bg-poke-card-hover hover:border-white/10
 				hover:-translate-y-[3px] hover:scale-[1.01]
 				hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]
-				animate-card-in ${delayClass}
+				animate-card-in
 				max-sm:p-2.5 max-sm:gap-3
 			`}
+			style={{ animationDelay: `${index * ANIMATION_DELAY_STEP_MS}ms` }}
 		>
 			<div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-gradient-to-r from-transparent via-white/[0.04] to-transparent pointer-events-none transition-opacity duration-250" />
 

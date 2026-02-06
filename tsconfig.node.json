@@ -13,7 +13,8 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true,
-		"noUncheckedIndexedAccess": true
+		"noUncheckedIndexedAccess": true,
+		"types": ["vitest"]
 	},
 	"include": ["vite.config.ts", "tailwind.config.ts", "postcss.config.js", "eslint.config.js"]
 }

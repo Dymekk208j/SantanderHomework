@@ -1,8 +1,8 @@
 /** Base error class for all Pokemon-related errors */
 export abstract class PokemonError extends Error {
-	constructor(message: string, name: string) {
+	constructor(message: string) {
 		super(message);
-		this.name = name;
+		this.name = new.target.name;
 		Object.setPrototypeOf(this, new.target.prototype);
 	}
 

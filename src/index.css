@@ -6,20 +6,3 @@ body {
 	background-image: radial-gradient(ellipse 600px 400px at 50% 0%, rgba(233, 69, 96, 0.06) 0%, transparent 70%);
 	background-repeat: no-repeat;
 }
-
-/* Staggered card animation delays */
-.card-delay-1 {
-	animation-delay: 0ms;
-}
-.card-delay-2 {
-	animation-delay: 60ms;
-}
-.card-delay-3 {
-	animation-delay: 120ms;
-}
-.card-delay-4 {
-	animation-delay: 180ms;
-}
-.card-delay-5 {
-	animation-delay: 240ms;
-}

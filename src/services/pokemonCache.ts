@@ -1,9 +1,9 @@
+import { HTTPError } from 'ky';
 import type { PokemonListItem } from '@app-types/pokemon';
 import { PokemonListResponseSchema } from '@app-types/pokemon';
 import { PokemonError, PokemonValidationError, PokemonApiError, PokemonNetworkError } from '@errors';
 import { POKEMON_FORM_ENDPOINT, TOTAL_POKEMON_LIMIT } from '@constants';
 import { api } from './api';
-import type { HTTPError } from 'ky';
 
 /**
  * Singleton cache for Pokemon list data.
@@ -44,11 +44,10 @@ export class PokemonCache {
 						throw error;
 					}
 
-					if (error && typeof error === 'object' && 'response' in error) {
-						const httpError = error as HTTPError;
+					if (error instanceof HTTPError) {
 						throw new PokemonApiError(
-							`API error: ${httpError.response.status} ${httpError.response.statusText}`,
-							httpError.response.status
+							`API error: ${error.response.status} ${error.response.statusText}`,
+							error.response.status
 						);
 					}
 

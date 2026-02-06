@@ -3,8 +3,8 @@ import { BehaviorSubject, combineLatest, from, of } from 'rxjs';
 import { debounceTime, switchMap, catchError, map, distinctUntilChanged, tap, startWith } from 'rxjs/operators';
 import type { PokemonForm } from '@app-types/pokemon';
 import { searchPokemonsByName } from '@services/pokemonService';
-import { PokemonAbortError } from '@errors';
-import type { UsePokemonSearchResult } from '@interfaces/UsePokemonSearchResult';
+import { PokemonAbortError, PokemonError } from '@errors';
+import type { UsePokemonSearchResult } from '@app-types/UsePokemonSearchResult';
 
 const EMPTY_RESULTS: readonly PokemonForm[] = [];
 
@@ -12,6 +12,7 @@ interface SearchState {
 	results: readonly PokemonForm[];
 	isLoading: boolean;
 	error: string | null;
+	isRetryable: boolean;
 }
 
 export function usePokemonSearch(): UsePokemonSearchResult {
@@ -20,6 +21,7 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 		results: [],
 		isLoading: false,
 		error: null,
+		isRetryable: false,
 	});
 
 	const querySubject$ = useMemo(() => new BehaviorSubject<string>(''), []);
@@ -45,6 +47,7 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 							results: EMPTY_RESULTS,
 							isLoading: false,
 							error: null,
+							isRetryable: false,
 						});
 					}
 
@@ -56,26 +59,32 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 							results,
 							isLoading: false,
 							error: null,
+							isRetryable: false,
 						})),
 						catchError((err: unknown) => {
 							if (err instanceof PokemonAbortError) {
 								return of({
-									results: [] as readonly PokemonForm[],
+									results: EMPTY_RESULTS,
 									isLoading: false,
 									error: null,
+									isRetryable: false,
 								});
 							}
 
+							const isRetryable = err instanceof PokemonError && err.isRetryable();
+
 							return of({
-								results: [] as readonly PokemonForm[],
+								results: EMPTY_RESULTS,
 								isLoading: false,
 								error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.',
+								isRetryable,
 							});
 						}),
 						startWith({
-							results: [] as readonly PokemonForm[],
+							results: EMPTY_RESULTS,
 							isLoading: true,
 							error: null,
+							isRetryable: false,
 						})
 					);
 				})
@@ -85,6 +94,8 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 		return () => {
 			subscription.unsubscribe();
 			abortControllerRef.current?.abort();
+			querySubject$.complete();
+			retrySubject$.complete();
 		};
 	}, [querySubject$, retrySubject$]);
 
@@ -98,6 +109,7 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 		results: state.results,
 		isLoading: state.isLoading,
 		error: state.error,
+		isRetryable: state.isRetryable,
 		retry,
 	};
 }

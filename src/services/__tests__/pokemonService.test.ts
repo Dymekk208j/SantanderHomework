@@ -29,13 +29,7 @@ describe('searchPokemonsByName', () => {
 		name: 'pikachu',
 		sprites: {
 			front_default: 'https://example.com/pikachu.png',
-			other: {
-				'official-artwork': {
-					front_default: 'https://example.com/pikachu-artwork.png',
-				},
-			},
 		},
-		types: [{ type: { name: 'electric' } }],
 	};
 
 	const mockCharizardForm: PokemonForm = {
@@ -43,13 +37,7 @@ describe('searchPokemonsByName', () => {
 		name: 'charizard',
 		sprites: {
 			front_default: 'https://example.com/charizard.png',
-			other: {
-				'official-artwork': {
-					front_default: 'https://example.com/charizard-artwork.png',
-				},
-			},
 		},
-		types: [{ type: { name: 'fire' } }, { type: { name: 'flying' } }],
 	};
 
 	beforeEach(() => {
@@ -138,11 +126,7 @@ describe('searchPokemonsByName', () => {
 		mockedFetchAll.mockResolvedValue(mockAllPokemons);
 		mockedFilterByPrefix.mockReturnValue(mockAllPokemons);
 
-		let _fetchCallCount = 0;
-		const jsonMock = vi.fn().mockImplementation(() => {
-			_fetchCallCount++;
-			return Promise.resolve(mockPikachuForm);
-		});
+		const jsonMock = vi.fn().mockResolvedValue(mockPikachuForm);
 		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
 
 		await searchPokemonsByName('p');

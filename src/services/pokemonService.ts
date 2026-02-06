@@ -1,3 +1,4 @@
+import { HTTPError } from 'ky';
 import type { PokemonForm } from '@app-types/pokemon';
 import { PokemonFormSchema } from '@app-types/pokemon';
 import { PokemonAbortError, PokemonValidationError, PokemonApiError, PokemonNetworkError, PokemonError } from '@errors';
@@ -5,7 +6,6 @@ import { MAX_RESULTS } from '@constants';
 import { api } from './api';
 import { PokemonCache } from '@services/pokemonCache';
 import { filterByPrefix } from '@utils/filters';
-import type { HTTPError } from 'ky';
 
 export async function searchPokemonsByName(query: string, signal?: AbortSignal): Promise<PokemonForm[]> {
 	// Fetch the cached list - if signal is provided, race against abort
@@ -53,11 +53,10 @@ export async function searchPokemonsByName(query: string, signal?: AbortSignal):
 					throw new PokemonAbortError();
 				}
 
-				if (error && typeof error === 'object' && 'response' in error) {
-					const httpError = error as HTTPError;
+				if (error instanceof HTTPError) {
 					throw new PokemonApiError(
-						`API error: ${httpError.response.status} ${httpError.response.statusText}`,
-						httpError.response.status
+						`API error: ${error.response.status} ${error.response.statusText}`,
+						error.response.status
 					);
 				}
 

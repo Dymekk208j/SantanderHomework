@@ -6,7 +6,7 @@ export class PokemonApiError extends PokemonError {
 		message: string,
 		public readonly status: number
 	) {
-		super(message, 'PokemonApiError');
+		super(message);
 	}
 
 	isRetryable(): boolean {

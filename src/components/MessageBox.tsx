@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import type { MessageBoxProps } from '@interfaces/MessageBoxProps';
+import type { MessageBoxProps } from '@app-types/MessageBoxProps';
 
 export const MessageBox: FC<MessageBoxProps> = ({ icon, text, variant, extra, action }) => {
 	const variantStyles = {

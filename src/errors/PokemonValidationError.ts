@@ -6,7 +6,7 @@ export class PokemonValidationError extends PokemonError {
 		message: string,
 		public readonly validationErrors?: unknown
 	) {
-		super(message, 'PokemonValidationError');
+		super(message);
 	}
 
 	isRetryable(): boolean {
