@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import type { FC } from 'react';
 import { toPokemonDisplay } from '@utils/pokemonFormatters';
-import { PokemonCard } from '@components/PokemonCard';
-import { LoadingDots } from '@components/LoadingDots';
-import { MessageBox } from '@components/MessageBox';
+import { PokemonCard } from './PokemonCard';
+import { LoadingDots } from '../common/LoadingDots';
+import { MessageBox } from '../common/MessageBox';
 import type { PokemonListProps } from '@app-types';
 
 export const PokemonList: FC<PokemonListProps> = ({ pokemons, isLoading, error, isRetryable, hasQuery, onRetry }) => {

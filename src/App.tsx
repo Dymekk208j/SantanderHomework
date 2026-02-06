@@ -1,7 +1,7 @@
 import type { FC } from 'react';
-import { Pokeball } from '@components/Pokeball';
-import { SearchInput } from '@components/SearchInput';
-import { PokemonList } from '@components/PokemonList';
+import { Pokeball } from '@components/common/Pokeball';
+import { SearchInput } from '@components/search/SearchInput';
+import { PokemonList } from '@components/pokemon/PokemonList';
 import { usePokemonSearch } from '@hooks/usePokemonSearch';
 
 const App: FC = () => {
