@@ -1,115 +1,40 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { BehaviorSubject, combineLatest, from, of } from 'rxjs';
-import { debounceTime, switchMap, catchError, map, distinctUntilChanged, tap, startWith } from 'rxjs/operators';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { PokemonForm } from '@app-types/pokemon';
 import { searchPokemonsByName } from '@services/pokemonService';
 import { PokemonAbortError, PokemonError } from '@errors';
 import type { UsePokemonSearchResult } from '@app-types/UsePokemonSearchResult';
-
-const EMPTY_RESULTS: readonly PokemonForm[] = [];
-
-interface SearchState {
-	results: readonly PokemonForm[];
-	isLoading: boolean;
-	error: string | null;
-	isRetryable: boolean;
-}
+import { useDebounce } from './useDebounce';
 
 export function usePokemonSearch(): UsePokemonSearchResult {
 	const [query, setQuery] = useState('');
-	const [state, setState] = useState<SearchState>({
-		results: [],
-		isLoading: false,
-		error: null,
-		isRetryable: false,
+	const debouncedQuery = useDebounce(query.trim(), 300);
+
+	const { data, isLoading, error, refetch } = useQuery<PokemonForm[], Error>({
+		queryKey: ['pokemon', debouncedQuery],
+		queryFn: async ({ signal }) => {
+			if (!debouncedQuery) return [];
+			return searchPokemonsByName(debouncedQuery, signal);
+		},
+		enabled: debouncedQuery.length > 0,
+		retry: (failureCount, error) => {
+			// Don't retry on abort errors
+			if (error instanceof PokemonAbortError) return false;
+			// Retry only if error is retryable and we haven't exceeded max attempts
+			return error instanceof PokemonError && error.isRetryable() && failureCount < 2;
+		},
+		retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
 	});
 
-	const querySubject$ = useMemo(() => new BehaviorSubject<string>(''), []);
-	const retrySubject$ = useMemo(() => new BehaviorSubject<number>(0), []);
-	const abortControllerRef = useRef<AbortController | null>(null);
-
-	useEffect(() => {
-		querySubject$.next(query);
-	}, [query, querySubject$]);
-
-	useEffect(() => {
-		const subscription = combineLatest([querySubject$, retrySubject$])
-			.pipe(
-				map(([q, r]) => ({ query: q.trim(), retry: r })),
-				debounceTime(300),
-				distinctUntilChanged((a, b) => a.query === b.query && a.retry === b.retry),
-				tap(() => {
-					abortControllerRef.current?.abort();
-				}),
-				switchMap(({ query }) => {
-					if (!query) {
-						return of({
-							results: EMPTY_RESULTS,
-							isLoading: false,
-							error: null,
-							isRetryable: false,
-						});
-					}
-
-					const controller = new AbortController();
-					abortControllerRef.current = controller;
-
-					return from(searchPokemonsByName(query, controller.signal)).pipe(
-						map((results) => ({
-							results,
-							isLoading: false,
-							error: null,
-							isRetryable: false,
-						})),
-						catchError((err: unknown) => {
-							if (err instanceof PokemonAbortError) {
-								return of({
-									results: EMPTY_RESULTS,
-									isLoading: false,
-									error: null,
-									isRetryable: false,
-								});
-							}
-
-							const isRetryable = err instanceof PokemonError && err.isRetryable();
-
-							return of({
-								results: EMPTY_RESULTS,
-								isLoading: false,
-								error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.',
-								isRetryable,
-							});
-						}),
-						startWith({
-							results: EMPTY_RESULTS,
-							isLoading: true,
-							error: null,
-							isRetryable: false,
-						})
-					);
-				})
-			)
-			.subscribe(setState);
-
-		return () => {
-			subscription.unsubscribe();
-			abortControllerRef.current?.abort();
-			querySubject$.complete();
-			retrySubject$.complete();
-		};
-	}, [querySubject$, retrySubject$]);
-
-	const retry = useCallback(() => {
-		retrySubject$.next(retrySubject$.value + 1);
-	}, [retrySubject$]);
+	const isRetryable = error instanceof PokemonError && error.isRetryable();
 
 	return {
 		query,
 		setQuery,
-		results: state.results,
-		isLoading: state.isLoading,
-		error: state.error,
-		isRetryable: state.isRetryable,
-		retry,
+		results: data ?? [],
+		isLoading,
+		error: error?.message ?? null,
+		isRetryable,
+		retry: refetch,
 	};
 }

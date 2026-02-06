@@ -1,33 +1,43 @@
 import { HTTPError } from 'ky';
-import type { PokemonForm } from '@app-types/pokemon';
-import { PokemonFormSchema } from '@app-types/pokemon';
+import type { PokemonForm, PokemonListItem } from '@app-types/pokemon';
+import { PokemonFormSchema, PokemonListResponseSchema } from '@app-types/pokemon';
 import { PokemonAbortError, PokemonValidationError, PokemonApiError, PokemonNetworkError, PokemonError } from '@errors';
-import { MAX_RESULTS } from '@constants';
+import { MAX_RESULTS, POKEMON_FORM_ENDPOINT, TOTAL_POKEMON_LIMIT } from '@constants';
 import { api } from './api';
-import { PokemonCache } from '@services/pokemonCache';
 import { filterByPrefix } from '@utils/filters';
 
-export async function searchPokemonsByName(query: string, signal?: AbortSignal): Promise<PokemonForm[]> {
-	// Fetch the cached list - if signal is provided, race against abort
-	const allPokemonsPromise = PokemonCache.fetchAll();
+async function fetchAllPokemons(signal?: AbortSignal): Promise<readonly PokemonListItem[]> {
+	try {
+		const json: unknown = await api.get(`${POKEMON_FORM_ENDPOINT}?limit=${TOTAL_POKEMON_LIMIT}`, { signal }).json();
 
-	const allPokemons = signal
-		? await Promise.race([
-				allPokemonsPromise,
-				new Promise<never>((_, reject) => {
-					if (signal.aborted) {
-						reject(new PokemonAbortError('Request aborted before fetch'));
-						return;
-					}
-					const abortHandler = () => reject(new PokemonAbortError('Request aborted'));
-					signal.addEventListener('abort', abortHandler, { once: true });
-					// Clean up if allPokemonsPromise resolves first
-					void allPokemonsPromise.finally(() => {
-						signal.removeEventListener('abort', abortHandler);
-					});
-				}),
-			])
-		: await allPokemonsPromise;
+		try {
+			const data = PokemonListResponseSchema.parse(json);
+			return data.results;
+		} catch (zodError) {
+			throw new PokemonValidationError('Failed to validate Pokemon list', zodError);
+		}
+	} catch (error: unknown) {
+		if (error instanceof PokemonError) {
+			throw error;
+		}
+
+		if (error instanceof DOMException && error.name === 'AbortError') {
+			throw new PokemonAbortError();
+		}
+
+		if (error instanceof HTTPError) {
+			throw new PokemonApiError(
+				`API error: ${error.response.status} ${error.response.statusText}`,
+				error.response.status
+			);
+		}
+
+		throw new PokemonNetworkError();
+	}
+}
+
+export async function searchPokemonsByName(query: string, signal?: AbortSignal): Promise<PokemonForm[]> {
+	const allPokemons = await fetchAllPokemons(signal);
 
 	const matched = filterByPrefix(allPokemons, query, MAX_RESULTS);
 

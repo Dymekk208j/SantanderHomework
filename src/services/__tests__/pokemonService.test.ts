@@ -1,5 +1,4 @@
 import { searchPokemonsByName } from '@services/pokemonService';
-import { PokemonCache } from '@services/pokemonCache';
 import { api } from '@services/api';
 import { filterByPrefix } from '@utils/filters';
 import { PokemonAbortError, PokemonNetworkError } from '@errors';
@@ -13,7 +12,6 @@ vi.mock('@services/api', () => ({
 }));
 vi.mock('@utils/filters');
 
-const mockedFetchAll = vi.spyOn(PokemonCache, 'fetchAll');
 const mockApiGet = vi.mocked(api.get);
 const mockedFilterByPrefix = vi.mocked(filterByPrefix);
 
@@ -23,6 +21,10 @@ describe('searchPokemonsByName', () => {
 		{ name: 'charizard', url: 'https://pokeapi.co/api/v2/pokemon-form/6/' },
 		{ name: 'bulbasaur', url: 'https://pokeapi.co/api/v2/pokemon-form/1/' },
 	];
+
+	const mockListResponse = {
+		results: mockAllPokemons,
+	};
 
 	const mockPikachuForm: PokemonForm = {
 		id: 25,
@@ -45,65 +47,76 @@ describe('searchPokemonsByName', () => {
 	});
 
 	it('should search and return matching pokemon forms', async () => {
-		mockedFetchAll.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
-
+		const listJsonMock = vi.fn().mockResolvedValue(mockListResponse);
 		const jsonMock1 = vi.fn().mockResolvedValue(mockPikachuForm);
 		const jsonMock2 = vi.fn().mockResolvedValue(mockCharizardForm);
+
 		mockApiGet
+			.mockReturnValueOnce({ json: listJsonMock } as unknown as ReturnType<typeof api.get>)
 			.mockReturnValueOnce({ json: jsonMock1 } as unknown as ReturnType<typeof api.get>)
 			.mockReturnValueOnce({ json: jsonMock2 } as unknown as ReturnType<typeof api.get>);
+
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
 
 		const result = await searchPokemonsByName('pi');
 
 		expect(result).toEqual([mockPikachuForm, mockCharizardForm]);
-		expect(mockedFetchAll).toHaveBeenCalledWith();
 		expect(mockedFilterByPrefix).toHaveBeenCalledWith(mockAllPokemons, 'pi', expect.any(Number));
-		expect(mockApiGet).toHaveBeenCalledTimes(2);
+		expect(mockApiGet).toHaveBeenCalledTimes(3); // 1 for list + 2 for individual pokemon
 	});
 
 	it('should return empty array when no matches found', async () => {
-		mockedFetchAll.mockResolvedValue(mockAllPokemons);
+		const listJsonMock = vi.fn().mockResolvedValue(mockListResponse);
+		mockApiGet.mockReturnValueOnce({ json: listJsonMock } as unknown as ReturnType<typeof api.get>);
 		mockedFilterByPrefix.mockReturnValue([]);
 
 		const result = await searchPokemonsByName('xyz');
 
 		expect(result).toEqual([]);
-		expect(mockApiGet).not.toHaveBeenCalled();
+		expect(mockApiGet).toHaveBeenCalledTimes(1); // Only the list call
 	});
 
 	it('should pass abort signal through all calls', async () => {
 		const controller = new AbortController();
-		mockedFetchAll.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
-
+		const listJsonMock = vi.fn().mockResolvedValue(mockListResponse);
 		const jsonMock = vi.fn().mockResolvedValue(mockPikachuForm);
-		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockApiGet
+			.mockReturnValueOnce({ json: listJsonMock } as unknown as ReturnType<typeof api.get>)
+			.mockReturnValueOnce({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
 
 		await searchPokemonsByName('pikachu', controller.signal);
 
-		expect(mockedFetchAll).toHaveBeenCalledWith();
+		expect(mockApiGet).toHaveBeenCalledWith(expect.stringContaining('pokemon-form?limit='), { signal: controller.signal });
 		expect(mockApiGet).toHaveBeenCalledWith(expect.any(String), { signal: controller.signal });
 	});
 
 	it('should throw PokemonAbortError when any request is aborted', async () => {
-		mockedFetchAll.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
+		const listJsonMock = vi.fn().mockResolvedValue(mockListResponse);
 		const jsonMock = vi.fn().mockRejectedValue(new DOMException('Aborted', 'AbortError'));
-		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockApiGet
+			.mockReturnValueOnce({ json: listJsonMock } as unknown as ReturnType<typeof api.get>)
+			.mockReturnValueOnce({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!]);
 
 		await expect(searchPokemonsByName('pikachu')).rejects.toThrow(PokemonAbortError);
 	});
 
 	it('should silently ignore non-abort errors for individual pokemon fetches', async () => {
-		mockedFetchAll.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
-
+		const listJsonMock = vi.fn().mockResolvedValue(mockListResponse);
 		const jsonMock1 = vi.fn().mockResolvedValue(mockPikachuForm);
 		const jsonMock2 = vi.fn().mockRejectedValue(new PokemonNetworkError());
+
 		mockApiGet
+			.mockReturnValueOnce({ json: listJsonMock } as unknown as ReturnType<typeof api.get>)
 			.mockReturnValueOnce({ json: jsonMock1 } as unknown as ReturnType<typeof api.get>)
 			.mockReturnValueOnce({ json: jsonMock2 } as unknown as ReturnType<typeof api.get>);
+
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
 
 		const result = await searchPokemonsByName('pi');
 
@@ -112,10 +125,14 @@ describe('searchPokemonsByName', () => {
 	});
 
 	it('should return empty array if all individual fetches fail', async () => {
-		mockedFetchAll.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
+		const listJsonMock = vi.fn().mockResolvedValue(mockListResponse);
 		const jsonMock = vi.fn().mockRejectedValue(new PokemonNetworkError());
-		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockApiGet
+			.mockReturnValueOnce({ json: listJsonMock } as unknown as ReturnType<typeof api.get>)
+			.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockedFilterByPrefix.mockReturnValue([mockAllPokemons[0]!, mockAllPokemons[1]!]);
 
 		const result = await searchPokemonsByName('pi');
 
@@ -123,14 +140,17 @@ describe('searchPokemonsByName', () => {
 	});
 
 	it('should fetch details for all matched pokemon in parallel', async () => {
-		mockedFetchAll.mockResolvedValue(mockAllPokemons);
-		mockedFilterByPrefix.mockReturnValue(mockAllPokemons);
-
+		const listJsonMock = vi.fn().mockResolvedValue(mockListResponse);
 		const jsonMock = vi.fn().mockResolvedValue(mockPikachuForm);
-		mockApiGet.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockApiGet
+			.mockReturnValueOnce({ json: listJsonMock } as unknown as ReturnType<typeof api.get>)
+			.mockReturnValue({ json: jsonMock } as unknown as ReturnType<typeof api.get>);
+
+		mockedFilterByPrefix.mockReturnValue(mockAllPokemons);
 
 		await searchPokemonsByName('p');
 
-		expect(mockApiGet).toHaveBeenCalledTimes(3);
+		expect(mockApiGet).toHaveBeenCalledTimes(4); // 1 for list + 3 for individual pokemon
 	});
 });
