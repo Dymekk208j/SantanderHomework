@@ -4,7 +4,7 @@ import { toPokemonDisplay } from '@utils/pokemonFormatters';
 import { PokemonCard } from '@components/PokemonCard';
 import { LoadingDots } from '@components/LoadingDots';
 import { MessageBox } from '@components/MessageBox';
-import type { PokemonListProps } from '@app-types/PokemonListProps';
+import type { PokemonListProps } from '@app-types';
 
 export const PokemonList: FC<PokemonListProps> = ({ pokemons, isLoading, error, isRetryable, hasQuery, onRetry }) => {
 	const displayPokemons = useMemo(() => pokemons.map(toPokemonDisplay), [pokemons]);

@@ -1,7 +1,6 @@
 import { FALLBACK_IMAGE } from '@constants';
-import type { PokemonForm } from '@app-types/pokemon/PokemonForm';
-import type { PokemonDisplay } from '@app-types/pokemon/PokemonDisplay';
-import { createDisplayName } from '@app-types/pokemon/PokemonDisplay';
+import type { PokemonForm, PokemonDisplay } from '@app-types';
+import { createDisplayName } from '@app-types';
 
 export function toPokemonDisplay(form: PokemonForm): PokemonDisplay {
 	const displayName = createDisplayName(

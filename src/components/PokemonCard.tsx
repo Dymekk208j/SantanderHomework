@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { FC } from 'react';
-import type { PokemonCardProps } from '@app-types/PokemonCardProps';
+import type { PokemonCardProps } from '@app-types';
 
 const ANIMATION_DELAY_STEP_MS = 60;
 

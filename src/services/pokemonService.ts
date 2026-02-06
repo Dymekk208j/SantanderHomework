@@ -1,6 +1,6 @@
 import { HTTPError } from 'ky';
-import type { PokemonForm, PokemonListItem } from '@app-types/pokemon';
-import { PokemonFormSchema, PokemonListResponseSchema } from '@app-types/pokemon';
+import type { PokemonForm, PokemonListItem } from '@app-types';
+import { PokemonFormSchema, PokemonListResponseSchema } from '@app-types';
 import { PokemonAbortError, PokemonValidationError, PokemonApiError, PokemonNetworkError, PokemonError } from '@errors';
 import { MAX_RESULTS, POKEMON_FORM_ENDPOINT, TOTAL_POKEMON_LIMIT } from '@constants';
 import { api } from './api';

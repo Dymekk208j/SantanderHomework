@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import type { PokemonForm } from '@app-types/pokemon';
+import type { PokemonForm, UsePokemonSearchResult } from '@app-types';
 import { searchPokemonsByName } from '@services/pokemonService';
 import { PokemonAbortError, PokemonError } from '@errors';
-import type { UsePokemonSearchResult } from '@app-types/UsePokemonSearchResult';
 import { useDebounce } from './useDebounce';
 
 export function usePokemonSearch(): UsePokemonSearchResult {
@@ -35,6 +34,8 @@ export function usePokemonSearch(): UsePokemonSearchResult {
 		isLoading,
 		error: error?.message ?? null,
 		isRetryable,
-		retry: refetch,
+		retry: () => {
+			void refetch();
+		},
 	};
 }
